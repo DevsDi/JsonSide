@@ -6,6 +6,7 @@
 const FREE_DIFF_LIMIT = 3;              // 每日免费次数
 const FREE_DIFF_SIZE = 10 * 1024;       // 免费版最大 10KB
 const PRO_DIFF_SIZE = 2 * 1024 * 1024;  // Pro 版最大 2MB
+const FREE_FORMAT_TS_LIMIT = 3;         // 每日免费格式化时间次数
 
 // API 地址
 const API_BASE = 'https://devcloud.buzz/notes/api';
@@ -96,7 +97,7 @@ async function canUseDiff(inputSize) {
       return {
         allowed: false,
         reason: 'size_limit',
-        message: `内容过大 (${(inputSize/1024/1024).toFixed(1)}MB)，最大支持 2MB`,
+        message: `Content too large (${(inputSize/1024/1024).toFixed(1)}MB), max 2MB`,
         isPro: true
       };
     }
@@ -108,7 +109,7 @@ async function canUseDiff(inputSize) {
     return {
       allowed: false,
       reason: 'size_limit',
-      message: `免费版最大 10KB，当前 ${(inputSize/1024).toFixed(1)}KB`
+      message: `Free version max 10KB, current ${(inputSize/1024).toFixed(1)}KB`
     };
   }
 
@@ -118,7 +119,7 @@ async function canUseDiff(inputSize) {
     return {
       allowed: false,
       reason: 'count_limit',
-      message: `今日已使用 ${usage} 次`
+      message: `Used ${usage} times today`
     };
   }
 
@@ -132,6 +133,57 @@ async function recordDiffUsage() {
   if (await isProUser()) return;
   const usage = await getTodayDiffUsage();
   await chrome.storage.local.set({ diffUsageCount: usage + 1 });
+}
+
+/**
+ * 获取今日 Format Time 使用次数
+ */
+async function getTodayFormatTsUsage() {
+  try {
+    const result = await chrome.storage.local.get(['formatTsDate', 'formatTsCount']);
+    const today = new Date().toDateString();
+
+    if (result.formatTsDate !== today) {
+      await chrome.storage.local.set({ formatTsDate: today, formatTsCount: 0 });
+      return 0;
+    }
+    return result.formatTsCount || 0;
+  } catch (e) {
+    return 0;
+  }
+}
+
+/**
+ * 检查是否可以使用 Format Time
+ * @returns {Object} { allowed, reason, message, usage, isPro }
+ */
+async function canUseFormatTs() {
+  const isPro = await isProUser();
+
+  if (isPro) {
+    return { allowed: true, isPro: true };
+  }
+
+  const usage = await getTodayFormatTsUsage();
+  if (usage >= FREE_FORMAT_TS_LIMIT) {
+    return {
+      allowed: false,
+      reason: 'count_limit',
+      message: `Used ${usage} times today`,
+      usage
+    };
+  }
+
+  return { allowed: true, usage, isPro: false };
+}
+
+/**
+ * 记录 Format Time 使用次数
+ */
+async function recordFormatTsUsage() {
+  if (await isProUser()) return;
+  const usage = await getTodayFormatTsUsage();
+  await chrome.storage.local.set({ formatTsCount: usage + 1 });
 }
 
 // Z5: 安全获取 DOM 元素，检查 null
@@ -271,7 +323,7 @@ async function init() {
     if (saved.jsonText) {
       // Y2: 验证 jsonText 大小
       if (saved.jsonText.length > MAX_INPUT_SIZE) {
-        output.innerHTML = `<div class="error">输入过大，请限制在 1MB 以内</div>`;
+        output.innerHTML = `<div class="error">Input too large, please limit to 1MB</div>`;
         chrome.storage.local.remove('jsonText');
         return;
       }
@@ -324,7 +376,7 @@ const TS_MAX_SEC = 4102444800;   // 2100-01-01 00:00:00 UTC (秒)
 function render(data, depth = 0) {
   // 深度限制检查
   if (depth > MAX_DEPTH) {
-    return '<span class="error" style="color: #f48771;">嵌套层级过深，已截断</span>';
+    return '<span class="error" style="color: #f48771;">Nested too deep, truncated</span>';
   }
 
   if (data === null) return '<span class="v-null">null</span>';
@@ -418,7 +470,7 @@ function format() {
 
   // 输入大小检查
   if (text.length > MAX_INPUT_SIZE) {
-    output.innerHTML = `<div class="error">输入过大 (${(text.length / 1024 / 1024).toFixed(2)}MB)，请限制在 1MB 以内</div>`;
+    output.innerHTML = `<div class="error">Input too large (${(text.length / 1024 / 1024).toFixed(2)}MB), please limit to 1MB</div>`;
     formattedJson = '';
     return;
   }
@@ -433,18 +485,29 @@ function format() {
     // 保存到历史记录
     saveToHistory(text, 'manual');
   } catch (e) {
-    output.innerHTML = `<div class="error">解析失败: ${esc(e.message)}</div>`;
+    output.innerHTML = `<div class="error">Parse failed: ${esc(e.message)}</div>`;
     formattedJson = '';
   }
 }
 
 // 格式化所有时间戳
-function formatAllTs() {
+async function formatAllTs() {
   const tz = Number(tzSelect.value);
   const all = output.querySelectorAll('.v-ts');
   if (!all.length) return;
 
+  // 检查是否已格式化（取消格式化不需要检查限制）
   const allFmt = Array.from(all).every(el => el.classList.contains('formatted'));
+
+  if (!allFmt) {
+    // 需要格式化，检查限制
+    const check = await canUseFormatTs();
+    if (!check.allowed) {
+      showFormatTsUpgradeDialog(check);
+      return;
+    }
+    await recordFormatTsUsage();
+  }
 
   all.forEach(el => {
     const ts = el.dataset.ts;
@@ -456,6 +519,13 @@ function formatAllTs() {
       el.textContent = formatTs(Number(ts), tz);
     }
   });
+}
+
+/**
+ * 显示 Format Time 升级弹窗
+ */
+function showFormatTsUpgradeDialog(check) {
+  showProDialog('Format Time: Daily limit reached (3 times). Upgrade to Pro for unlimited use.');
 }
 
 // 全部展开
@@ -604,12 +674,12 @@ function formatTime(isoString) {
   const now = new Date();
   const diff = now - date;
 
-  if (diff < 60000) return '刚刚';
-  if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前';
-  if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前';
-  if (diff < 604800000) return Math.floor(diff / 86400000) + '天前';
+  if (diff < 60000) return 'Just now';
+  if (diff < 3600000) return Math.floor(diff / 60000) + ' min ago';
+  if (diff < 86400000) return Math.floor(diff / 3600000) + ' hours ago';
+  if (diff < 604800000) return Math.floor(diff / 86400000) + ' days ago';
 
-  return date.toLocaleDateString('zh-CN');
+  return date.toLocaleDateString('en-US');
 }
 
 /**
@@ -653,7 +723,7 @@ async function renderHistoryList() {
   }
 
   if (historyAllData.length === 0) {
-    historyList.innerHTML = '<div class="history-empty">暂无历史记录</div>';
+    historyList.innerHTML = '<div class="history-empty">No history</div>';
     // 隐藏分页
     const pagination = document.getElementById('historyPagination');
     if (pagination) pagination.style.display = 'none';
@@ -690,10 +760,10 @@ function renderHistoryPage() {
         <div class="history-preview">${escDiff(item.preview)}...</div>
         <div class="history-meta">
           <span class="history-time">${formatFullTime(item.time, tzOffset)}</span>
-          <span class="history-source">${safeSource === 'right-click' ? '右键' : '手动'}</span>
+          <span class="history-source">${safeSource === 'right-click' ? 'Right-click' : 'Manual'}</span>
         </div>
       </div>
-      <button class="history-delete" data-index="${index}">删除</button>
+      <button class="history-delete" data-index="${index}">Delete</button>
     </div>`;
   }).join('');
 
@@ -809,7 +879,7 @@ historyOverlay.onclick = closeHistoryDrawer;
 
 // 清空全部历史
 clearAllHistoryBtn.onclick = async () => {
-  if (confirm('确定要清空所有历史记录吗？')) {
+  if (confirm('Clear all history?')) {
     await clearHistory();
     renderHistoryList();
   }
@@ -835,7 +905,7 @@ async function updateLicenseButton() {
     btn.classList.add('activated');
     btn.onclick = null;
   } else {
-    btn.textContent = '激活';
+    btn.textContent = 'Activate';
     btn.classList.remove('activated');
     btn.onclick = () => showProDialog();
   }
@@ -950,7 +1020,7 @@ async function showProDialog(reason = null) {
   if (activateBtn) {
     activateBtn.onclick = doActivate;
     activateBtn.disabled = false;
-    activateBtn.textContent = '激活';
+    activateBtn.textContent = 'Activate';
   }
 
   const buyBtn = document.getElementById('buyNowBtn');
@@ -976,19 +1046,19 @@ async function doActivate() {
 
   const key = input.value.trim();
   if (!key) {
-    showLicenseResult('请输入激活码', false);
+    showLicenseResult('Please enter license key', false);
     return;
   }
 
   const normalized = key.toUpperCase();
   const pattern = /^JSIDE-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
   if (!pattern.test(normalized)) {
-    showLicenseResult('激活码格式不正确', false);
+    showLicenseResult('Invalid license format', false);
     return;
   }
 
   btn.disabled = true;
-  btn.textContent = '验证中...';
+  btn.textContent = 'Verifying...';
 
   try {
     const deviceId = await getLicenseDeviceId();
@@ -1000,9 +1070,9 @@ async function doActivate() {
     const result = await response.json();
 
     if (!result.success && !result.valid) {
-      showLicenseResult(result.error || result.message || '激活码无效', false);
+      showLicenseResult(result.error || result.message || 'Invalid license', false);
       btn.disabled = false;
-      btn.textContent = '激活';
+      btn.textContent = 'Activate';
       return;
     }
 
@@ -1015,21 +1085,21 @@ async function doActivate() {
 
     const saveResult = await saveLicenseToBookmark(licenseData);
     if (saveResult.success) {
-      showLicenseResult('激活成功！', true);
+      showLicenseResult('Activated successfully!', true);
       document.getElementById('proUnactivated').style.display = 'none';
       document.getElementById('proActivated').style.display = 'block';
       document.getElementById('displayKey').textContent = normalized;
       document.getElementById('closeProBtn2').style.display = 'block';
       await updateLicenseButton();
     } else {
-      showLicenseResult('保存失败: ' + saveResult.error, false);
+      showLicenseResult('Save failed: ' + saveResult.error, false);
       btn.disabled = false;
-      btn.textContent = '激活';
+      btn.textContent = 'Activate';
     }
   } catch (e) {
-    showLicenseResult('网络错误: ' + e.message, false);
+    showLicenseResult('Network error: ' + e.message, false);
     btn.disabled = false;
-    btn.textContent = '激活';
+    btn.textContent = 'Activate';
   }
 }
 
@@ -1051,11 +1121,11 @@ function showLicenseResult(message, success) {
  * 显示升级弹窗（改为调用 Pro 弹窗）
  */
 function showUpgradeDialog(check) {
-  let reason = check.message || '升级解锁完整功能';
+  let reason = check.message || 'Upgrade to unlock full features';
   if (check.reason === 'size_limit') {
-    reason = `内容过大，免费版最大 10KB`;
+    reason = `Content too large, free version max 10KB`;
   } else if (check.reason === 'count_limit') {
-    reason = `今日次数已用完`;
+    reason = `Daily limit reached`;
   }
   showProDialog(reason);
 }
@@ -1165,7 +1235,7 @@ function collectDiffs(a, b, path = '', depth = 0) {
 function renderJson(data, diffs, side, path = '', indent = 0, depth = 0) {
   // 深度限制检查
   if (depth > MAX_DEPTH) {
-    return `<span class="error" style="color: #f48771;">嵌套层级过深，已截断</span>`;
+    return `<span class="error" style="color: #f48771;">Nested too deep, truncated</span>`;
   }
 
   const pad = '  '.repeat(indent);
@@ -1512,7 +1582,7 @@ function renderSimpleFormatted(data, indent = 0, depth = 0) {
 
   // 深度限制检查
   if (depth > MAX_DEPTH) {
-    return '<span class="error" style="color: #f48771;">嵌套层级过深，已截断</span>';
+    return '<span class="error" style="color: #f48771;">Nested too deep, truncated</span>';
   }
 
   if (data === null) return '<span class="v-null">null</span>';
@@ -1552,7 +1622,7 @@ function renderSimpleFormatted(data, indent = 0, depth = 0) {
  */
 function renderCompact(data, depth = 0) {
   if (depth > MAX_DEPTH) {
-    return '<span class="error">嵌套层级过深</span>';
+    return '<span class="error">Nested too deep</span>';
   }
 
   if (data === null) return '<span class="v-null">null</span>';
@@ -1645,7 +1715,7 @@ function jsonToTypeScript(data, interfaceName = 'Root', indent = 0, depth = 0) {
 
   // W2: 深度限制
   if (depth > MAX_DEPTH) {
-    return `${pad}// ${interfaceName}: 嵌套层级过深，已截断\n`;
+    return `${pad}// ${interfaceName}: nested too deep, truncated\n`;
   }
 
   if (data === null) {
@@ -1770,7 +1840,7 @@ function jsonToGo(data, structName = 'Root', indent = 0, generatedStructs = new 
 
   // W3: 深度限制
   if (depth > MAX_DEPTH) {
-    return `${pad}// ${structName}: 嵌套层级过深，已截断\n`;
+    return `${pad}// ${structName}: nested too deep, truncated\n`;
   }
 
   if (data === null || typeof data !== 'object') {
@@ -1882,7 +1952,7 @@ function getGoTypeFromValue(value, typeName, indent, generatedStructs) {
 function jsonToYaml(data, indent = 0, depth = 0, inArray = false) {
   // A1: 深度限制
   if (depth > MAX_DEPTH) {
-    return '# 嵌套层级过深，已截断';
+    return '# nested too deep, truncated';
   }
 
   const pad = '  '.repeat(indent);
@@ -2110,7 +2180,7 @@ function doConvert() {
 
   // 输入大小检查
   if (text.length > MAX_INPUT_SIZE) {
-    convertResult.innerHTML = `<span class="error">输入过大 (${(text.length / 1024 / 1024).toFixed(2)}MB)，请限制在 1MB 以内</span>`;
+    convertResult.innerHTML = `<span class="error">Input too large (${(text.length / 1024 / 1024).toFixed(2)}MB), please limit to 1MB</span>`;
     return;
   }
 
@@ -2137,12 +2207,12 @@ function doConvert() {
     // A3: 转换结果大小限制（1MB）
     const MAX_CONVERT_RESULT_SIZE = 1024 * 1024;
     if (result.length > MAX_CONVERT_RESULT_SIZE) {
-      convertResult.innerHTML = `<span class="error">转换结果过大 (${(result.length / 1024 / 1024).toFixed(2)}MB)，已截断</span>`;
+      convertResult.innerHTML = `<span class="error">Result too large (${(result.length / 1024 / 1024).toFixed(2)}MB), truncated</span>`;
     } else {
       convertResult.innerHTML = highlighted;
     }
   } catch (e) {
-    convertResult.innerHTML = `<span class="error">解析失败: ${esc(e.message)}</span>`;
+    convertResult.innerHTML = `<span class="error">Parse failed: ${esc(e.message)}</span>`;
   }
 }
 
@@ -2422,32 +2492,32 @@ function queryPath() {
   const expr = pathExpr.value.trim();
 
   if (!text) {
-    pathResult.innerHTML = '<div class="error">请输入 JSON</div>';
+    pathResult.innerHTML = '<div class="error">Please enter JSON</div>';
     return;
   }
 
   // 输入大小检查
   if (text.length > MAX_INPUT_SIZE) {
-    pathResult.innerHTML = `<div class="error">输入过大 (${(text.length / 1024 / 1024).toFixed(2)}MB)，请限制在 1MB 以内</div>`;
+    pathResult.innerHTML = `<div class="error">Input too large (${(text.length / 1024 / 1024).toFixed(2)}MB), please limit to 1MB</div>`;
     return;
   }
 
   if (!expr) {
-    pathResult.innerHTML = '<div class="error">请输入 JSON Path 表达式</div>';
+    pathResult.innerHTML = '<div class="error">Please enter JSON Path expression</div>';
     return;
   }
 
   // X4: JSON Path 表达式长度限制（1000字符）
   const MAX_PATH_EXPR_LENGTH = 1000;
   if (expr.length > MAX_PATH_EXPR_LENGTH) {
-    pathResult.innerHTML = `<div class="error">路径表达式过长 (${expr.length}字符)，请限制在 ${MAX_PATH_EXPR_LENGTH} 字符以内</div>`;
+    pathResult.innerHTML = `<div class="error">Path expression too long (${expr.length} chars), max ${MAX_PATH_EXPR_LENGTH} chars</div>`;
     return;
   }
 
   try {
     pathData = JSON.parse(text);
   } catch (e) {
-    pathResult.innerHTML = `<div class="error">JSON 解析失败: ${esc(e.message)}</div>`;
+    pathResult.innerHTML = `<div class="error">JSON parse failed: ${esc(e.message)}</div>`;
     return;
   }
 
@@ -2455,12 +2525,12 @@ function queryPath() {
     const results = jsonPath(pathData, expr);
 
     if (results.length === 0) {
-      pathResult.innerHTML = '<div class="error">未找到匹配结果</div>';
+      pathResult.innerHTML = '<div class="error">No matches found</div>';
       return;
     }
 
     // 渲染结果
-    let html = `<div style="color: #6a9955; margin-bottom: 8px;">找到 ${results.length} 个结果:</div>`;
+    let html = `<div style="color: #6a9955; margin-bottom: 8px;">Found ${results.length} results:</div>`;
     results.forEach((r, i) => {
       html += `<div style="margin-bottom: 12px; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 4px;">`;
       html += `<div style="color: #888; font-size: 11px; margin-bottom: 4px;">[${i}]</div>`;
@@ -2470,7 +2540,7 @@ function queryPath() {
     pathResult.innerHTML = html;
   } catch (e) {
     // X1: 错误信息转义
-    pathResult.innerHTML = `<div class="error">查询失败: ${esc(e.message)}</div>`;
+    pathResult.innerHTML = `<div class="error">Query failed: ${esc(e.message)}</div>`;
   }
 }
 
@@ -2693,7 +2763,7 @@ function updateDiffUsageDisplay(usage) {
   if (diffStats) {
     const remaining = FREE_DIFF_LIMIT - usage;
     if (remaining > 0) {
-      diffStats.innerHTML = `<span style="color:#888;">剩余 ${remaining} 次</span> ` + diffStats.innerHTML;
+      diffStats.innerHTML = `<span style="color:#888;">${remaining} left</span> ` + diffStats.innerHTML;
     }
   }
 }

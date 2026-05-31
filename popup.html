@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -496,15 +496,15 @@
 <body>
   <div class="header-row">
     <h1>JSON Side</h1>
-    <button id="licenseBtn" class="license-btn">激活</button>
+    <button id="licenseBtn" class="license-btn">Activate</button>
   </div>
   <div class="toolbar">
-    <button id="modeFormatBtn" class="mode-btn active">格式化</button>
+    <button id="modeFormatBtn" class="mode-btn active">Format</button>
     <button id="modeDiffBtn" class="mode-btn">Diff</button>
-    <button id="modeConvertBtn" class="mode-btn">转换</button>
+    <button id="modeConvertBtn" class="mode-btn">Convert</button>
     <button id="modePathBtn" class="mode-btn">Path</button>
-    <button id="modeCompactBtn" class="mode-btn">压缩</button>
-    <button id="historyBtn" class="mode-btn">历史</button>
+    <button id="modeCompactBtn" class="mode-btn">Compact</button>
+    <button id="historyBtn" class="mode-btn">History</button>
     <span class="divider" style="width:2px;background:#0e639c;margin:0 12px;"></span>
     <select id="tzSelect" style="padding:5px 24px 5px 10px;font-size:12px;border-radius:4px;background:var(--bg-head);border:1px solid var(--border);color:var(--text);cursor:pointer;appearance:none;background-image:url('data:image/svg+xml;utf8,<svg fill=\"%23888\" height=\"12\" viewBox=\"0 0 24 24\" width=\"12\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M7 10l5 5 5-5z\"/></svg>');background-repeat:no-repeat;background-position:right 6px center;">
       <option value="12" style="background:var(--bg-head);color:var(--text);">UTC+12 奥克兰</option>
@@ -533,30 +533,30 @@
       <option value="-11" style="background:var(--bg-head);color:var(--text);">UTC-11 萨摩亚</option>
       <option value="-12" style="background:var(--bg-head);color:var(--text);">UTC-12 贝克岛</option>
     </select>
-    <button id="formatBtn" class="small-btn primary-btn">格式化</button>
-    <button id="formatTsBtn" class="small-btn">时间格式化</button>
-    <button id="expandBtn" class="small-btn">全部展开</button>
-    <button id="collapseBtn" class="small-btn">全部收起</button>
-    <button id="copyBtn" class="small-btn">复制结果</button>
-    <button id="clearBtn" class="small-btn">清空</button>
+    <button id="formatBtn" class="small-btn primary-btn">Format</button>
+    <button id="formatTsBtn" class="small-btn">Format Time</button>
+    <button id="expandBtn" class="small-btn">Expand All</button>
+    <button id="collapseBtn" class="small-btn">Collapse All</button>
+    <button id="copyBtn" class="small-btn">Copy</button>
+    <button id="clearBtn" class="small-btn">Clear</button>
   </div>
-  <!-- 格式化模式 -->
+  <!-- Format Mode -->
   <div id="formatMode" class="main">
     <div class="panel">
-      <div class="panel-label">输入 JSON</div>
-      <textarea id="input" placeholder='粘贴 JSON，如：{"name": "test", "time": 1717147200000}'></textarea>
+      <div class="panel-label">Input JSON</div>
+      <textarea id="input" placeholder='Paste JSON, e.g.: {"name": "test", "time": 1717147200000}'></textarea>
     </div>
     <div class="panel">
-      <div class="panel-label">格式化结果</div>
+      <div class="panel-label">Result</div>
       <div class="output" id="output"></div>
     </div>
   </div>
-  <!-- Diff 模式 -->
+  <!-- Diff Mode -->
   <div id="diffMode" class="main" style="display: none;">
     <div class="panel">
       <div class="panel-label diff-toolbar">
         <span>JSON A</span>
-        <button id="swapBtn" class="small-btn">交换</button>
+        <button id="swapBtn" class="small-btn">Swap</button>
       </div>
       <div class="output" id="diffOutputA" contenteditable="true" spellcheck="false"></div>
     </div>
@@ -569,20 +569,20 @@
       <div class="output" id="diffOutputB" contenteditable="true" spellcheck="false"></div>
     </div>
   </div>
-  <!-- 转換模式 -->
+  <!-- Convert Mode -->
   <div id="convertMode" class="main" style="display: none;">
     <div class="panel">
       <div class="panel-label diff-toolbar">
-        <span>JSON 输入</span>
-        <button id="clearConvertBtn" class="small-btn">清空</button>
+        <span>JSON Input</span>
+        <button id="clearConvertBtn" class="small-btn">Clear</button>
       </div>
-      <textarea id="convertInput" placeholder='粘贴 JSON，如：{"name": "test", "age": 18}' style="display: none;"></textarea>
+      <textarea id="convertInput" placeholder='Paste JSON, e.g.: {"name": "test", "age": 18}' style="display: none;"></textarea>
       <div class="output" id="convertOutputDisplay" contenteditable="true" spellcheck="false"></div>
     </div>
     <div class="panel">
       <div class="panel-label diff-toolbar">
-        <span>转换结果</span>
-        <button id="copyConvertBtn" class="small-btn">复制</button>
+        <span>Result</span>
+        <button id="copyConvertBtn" class="small-btn">Copy</button>
       </div>
       <div class="convert-output" id="convertOutput">
         <div class="convert-tabs">
@@ -594,69 +594,69 @@
       </div>
     </div>
   </div>
-  <!-- JSON Path 模式 -->
+  <!-- JSON Path Mode -->
   <div id="pathMode" class="main" style="display: none;">
     <div class="panel">
       <div class="panel-label diff-toolbar">
-        <span>JSON 输入</span>
-        <button id="clearPathBtn" class="small-btn">清空</button>
+        <span>JSON Input</span>
+        <button id="clearPathBtn" class="small-btn">Clear</button>
       </div>
-      <textarea id="pathInput" placeholder='粘贴 JSON，如：{"store": {"book": [{"title": "A"}]}}' style="display: none;"></textarea>
+      <textarea id="pathInput" placeholder='Paste JSON, e.g.: {"store": {"book": [{"title": "A"}]}}' style="display: none;"></textarea>
       <div class="output" id="pathOutputDisplay" contenteditable="true" spellcheck="false"></div>
     </div>
     <div class="panel">
       <div class="panel-label diff-toolbar">
-        <span>JSON Path 查询</span>
-        <button id="queryPathBtn" class="small-btn primary-btn">查询</button>
+        <span>JSON Path Query</span>
+        <button id="queryPathBtn" class="small-btn primary-btn">Query</button>
       </div>
-      <input id="pathExpr" type="text" placeholder='输入路径，如：$.store.book[0].title 或 $.store..title' style="margin-bottom: 8px; width: 100%;">
+      <input id="pathExpr" type="text" placeholder='Enter path, e.g.: $.store.book[0].title or $.store..title' style="margin-bottom: 8px; width: 100%;">
       <div class="output" id="pathResult" style="flex: 1;"></div>
     </div>
   </div>
-  <!-- 压缩/转义模式 -->
+  <!-- Compact Mode -->
   <div id="compactMode" class="main" style="display: none;">
     <div class="panel">
       <div class="panel-label diff-toolbar">
-        <span>JSON 输入</span>
-        <button id="clearCompactBtn" class="small-btn">清空</button>
+        <span>JSON Input</span>
+        <button id="clearCompactBtn" class="small-btn">Clear</button>
       </div>
-      <textarea id="compactInput" placeholder='粘贴 JSON 或转义字符串' style="display: none;"></textarea>
+      <textarea id="compactInput" placeholder='Paste JSON or escaped string' style="display: none;"></textarea>
       <div class="output" id="compactOutputDisplay" contenteditable="true" spellcheck="false"></div>
     </div>
     <div class="panel">
       <div class="panel-label diff-toolbar">
-        <span>操作结果</span>
-        <button id="copyCompactBtn" class="small-btn">复制结果</button>
+        <span>Result</span>
+        <button id="copyCompactBtn" class="small-btn">Copy</button>
       </div>
       <div style="display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
-        <button id="compactBtn" class="small-btn primary-btn">压缩</button>
-        <button id="escapeBtn" class="small-btn">转义</button>
-        <button id="unescapeBtn" class="small-btn">反转义</button>
+        <button id="compactBtn" class="small-btn primary-btn">Compact</button>
+        <button id="escapeBtn" class="small-btn">Escape</button>
+        <button id="unescapeBtn" class="small-btn">Unescape</button>
       </div>
       <textarea id="compactOutput" readonly style="display: none;"></textarea>
       <div class="output" id="compactResultDisplay" contenteditable="false" spellcheck="false" style="flex: 1;"></div>
     </div>
   </div>
-  <!-- 历史记录侧边栏 -->
+  <!-- History Sidebar -->
   <div id="historyPanel" class="history-drawer">
     <div class="history-drawer-header">
-      <span>历史记录 <span id="historyLimitTip" class="history-limit-tip">(免费版最多10条)</span> <span id="historyCount" class="history-count"></span></span>
-      <button id="closeHistoryBtn" class="small-btn">关闭</button>
+      <span>History <span id="historyLimitTip" class="history-limit-tip">(Free: max 10 items)</span> <span id="historyCount" class="history-count"></span></span>
+      <button id="closeHistoryBtn" class="small-btn">Close</button>
     </div>
     <div class="history-drawer-toolbar">
-      <button id="clearAllHistoryBtn" class="small-btn">清空全部</button>
+      <button id="clearAllHistoryBtn" class="small-btn">Clear All</button>
     </div>
     <div class="history-drawer-list" id="historyList"></div>
     <div id="historyPagination" class="history-pagination" style="display:none;">
-      <button id="historyPrevBtn" class="small-btn">上一页</button>
+      <button id="historyPrevBtn" class="small-btn">Previous</button>
       <span id="historyPageInfo" class="history-page-info">1/1</span>
-      <button id="historyNextBtn" class="small-btn">下一页</button>
+      <button id="historyNextBtn" class="small-btn">Next</button>
     </div>
   </div>
   <div id="historyOverlay" class="history-overlay"></div>
-  <div class="toast" id="toast">已复制到剪贴板</div>
+  <div class="toast" id="toast">Copied to clipboard</div>
 
-  <!-- Pro 弹窗（升级+激活合并） -->
+  <!-- Pro Dialog -->
   <div id="proOverlay" class="upgrade-overlay" style="display:none;">
     <div class="upgrade-dialog" style="max-width:400px;padding:28px;">
       <button id="closeProBtn" class="upgrade-close">×</button>
@@ -665,35 +665,36 @@
         <h2>Diff Pro</h2>
       </div>
 
-      <!-- 未激活状态 -->
+      <!-- Unactivated -->
       <div id="proUnactivated">
         <p id="proReason" class="upgrade-reason"></p>
         <div class="upgrade-features" style="text-align:left;">
-          <div class="feature-item">✓ 无限 Diff 对比</div>
-          <div class="feature-item">✓ 单次最大 2MB</div>
-          <div class="feature-item">✓ 历史记录 100 条</div>
+          <div class="feature-item">✓ Unlimited Diff comparisons</div>
+          <div class="feature-item">✓ Unlimited Format Time</div>
+          <div class="feature-item">✓ Max 2MB per comparison</div>
+          <div class="feature-item">✓ 100 history items</div>
         </div>
         <div class="upgrade-price-box">
           <span class="upgrade-price">$9</span>
-          <span class="upgrade-price-note">终身使用</span>
+          <span class="upgrade-price-note">Lifetime</span>
         </div>
         <input type="text" id="licenseInput" placeholder="JSIDE-XXXX-XXXX-XXXX" maxlength="20"
           style="width:100%;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:15px;font-family:Consolas,monospace;text-align:center;letter-spacing:1px;margin-bottom:12px;box-sizing:border-box;">
         <div style="display:flex;gap:10px;">
-          <button id="activateBtn" style="flex:1;padding:12px;font-size:15px;background:linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);border:none;border-radius:6px;color:#fff;cursor:pointer;font-weight:500;">激活</button>
-          <button id="buyNowBtn" style="flex:1;padding:12px;font-size:15px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;">购买</button>
+          <button id="activateBtn" style="flex:1;padding:12px;font-size:15px;background:linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);border:none;border-radius:6px;color:#fff;cursor:pointer;font-weight:500;">Activate</button>
+          <button id="buyNowBtn" style="flex:1;padding:12px;font-size:15px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;">Buy</button>
         </div>
         <div id="licenseResult" style="display:none;margin-top:12px;padding:10px;border-radius:6px;font-size:13px;text-align:center;"></div>
       </div>
 
-      <!-- 已激活状态 -->
+      <!-- Activated -->
       <div id="proActivated" style="display:none;padding:20px;background:rgba(76,175,50,0.1);border:1px solid #4caf50;border-radius:8px;margin-top:4px;">
-        <div style="color:#4caf50;font-size:18px;margin-bottom:10px;text-align:center;">✓ 已激活</div>
+        <div style="color:#4caf50;font-size:18px;margin-bottom:10px;text-align:center;">✓ Activated</div>
         <div style="font-size:13px;color:#888;text-align:center;">
-          激活码: <span id="displayKey" style="color:var(--text);font-family:Consolas,monospace;"></span>
+          License: <span id="displayKey" style="color:var(--text);font-family:Consolas,monospace;"></span>
         </div>
       </div>
-      <button id="closeProBtn2" style="display:none;width:100%;margin-top:16px;padding:12px;background:var(--accent);border:none;border-radius:6px;color:#fff;font-size:14px;cursor:pointer;">关闭</button>
+      <button id="closeProBtn2" style="display:none;width:100%;margin-top:16px;padding:12px;background:var(--accent);border:none;border-radius:6px;color:#fff;font-size:14px;cursor:pointer;">Close</button>
     </div>
   </div>
 

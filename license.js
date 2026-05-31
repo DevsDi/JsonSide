@@ -126,7 +126,7 @@ async function activateLicenseOnline(licenseKey, deviceId) {
     });
     return await response.json();
   } catch (e) {
-    return { success: false, error: '网络错误，请稍后重试' };
+    return { success: false, error: 'Network error, please try again' };
   }
 }
 
@@ -137,7 +137,7 @@ function validateLicenseFormat(key) {
   const normalized = key.trim().toUpperCase();
   const pattern = /^JSIDE-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
   if (!pattern.test(normalized)) {
-    return { valid: false, reason: '激活码格式不正确' };
+    return { valid: false, reason: 'Invalid license format' };
   }
   return { valid: true, key: normalized };
 }
@@ -197,18 +197,18 @@ async function activate() {
   const key = input.value.trim();
 
   if (!key) {
-    showResult('请输入激活码', false);
+    showResult('Please enter license key', false);
     return;
   }
 
   btn.disabled = true;
-  btn.textContent = '验证中...';
+  btn.textContent = 'Verifying...';
 
   const formatResult = validateLicenseFormat(key);
   if (!formatResult.valid) {
     showResult(formatResult.reason, false);
     btn.disabled = false;
-    btn.textContent = '激活';
+    btn.textContent = 'Activate';
     return;
   }
 
@@ -216,9 +216,9 @@ async function activate() {
   const result = await activateLicenseOnline(formatResult.key, deviceId);
 
   if (!result.success && !result.valid) {
-    showResult(result.error || result.message || '激活码无效', false);
+    showResult(result.error || result.message || 'Invalid license', false);
     btn.disabled = false;
-    btn.textContent = '激活';
+    btn.textContent = 'Activate';
     return;
   }
 
@@ -233,12 +233,12 @@ async function activate() {
   const saveResult = await saveToBookmark(licenseData);
 
   if (saveResult.success) {
-    showResult('激活成功！', true);
+    showResult('Activated successfully!', true);
     showProStatus(licenseData);
   } else {
-    showResult('书签保存失败: ' + saveResult.error, false);
+    showResult('Save failed: ' + saveResult.error, false);
     btn.disabled = false;
-    btn.textContent = '激活';
+    btn.textContent = 'Activate';
   }
 }
 
@@ -263,7 +263,7 @@ async function reactivate() {
   if (licenseInput) licenseInput.value = '';
   if (activateBtn) {
     activateBtn.disabled = false;
-    activateBtn.textContent = '激活';
+    activateBtn.textContent = 'Activate';
   }
 }
 

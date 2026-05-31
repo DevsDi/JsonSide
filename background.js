@@ -11,7 +11,7 @@ const MAX_HISTORY_ITEM_SIZE = 100 * 1024; // 100KB
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: 'format-json',
-    title: '格式化 JSON',
+    title: 'Format JSON',
     contexts: ['selection'] // 仅在选中文本时显示
   });
 });
