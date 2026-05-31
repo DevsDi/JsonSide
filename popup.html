@@ -147,6 +147,124 @@
     .diff-count-add { color: #4caf50; font-weight: bold; }
     .diff-count-del { color: #f44336; font-weight: bold; }
     .diff-count-mod { color: #ff9800; font-weight: bold; }
+    /* 历史记录侧边栏 */
+    .history-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+      transition: opacity 0.3s;
+    }
+    .history-overlay.show {
+      display: block;
+    }
+    .history-drawer {
+      position: fixed;
+      top: 0;
+      right: -400px;
+      width: 400px;
+      height: 100%;
+      background: var(--bg-head);
+      border-left: 1px solid var(--border);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      transition: right 0.3s ease;
+      box-shadow: -4px 0 20px rgba(0,0,0,0.3);
+    }
+    .history-drawer.show {
+      right: 0;
+    }
+    .history-drawer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--text);
+      background: var(--bg);
+    }
+    .history-drawer-toolbar {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .history-drawer-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+    .history-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .history-item:hover {
+      background: rgba(255,255,255,0.05);
+    }
+    .history-icon {
+      margin-right: 12px;
+      font-size: 18px;
+    }
+    .history-icon.right-click { color: var(--accent); }
+    .history-icon.manual { color: var(--muted); }
+    .history-content {
+      flex: 1;
+      overflow: hidden;
+    }
+    .history-preview {
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .history-meta {
+      font-size: 11px;
+      color: #666;
+      margin-top: 4px;
+      display: flex;
+      gap: 12px;
+    }
+    .history-time {
+      color: var(--muted);
+    }
+    .history-source {
+      color: #888;
+    }
+    .history-delete {
+      padding: 4px 8px;
+      font-size: 11px;
+      color: #888;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      opacity: 0;
+      transition: all 0.2s;
+    }
+    .history-item:hover .history-delete {
+      opacity: 1;
+    }
+    .history-delete:hover {
+      color: #f44336;
+      border-color: #f44336;
+    }
+    .history-empty {
+      padding: 40px 20px;
+      text-align: center;
+      color: #666;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
@@ -154,6 +272,8 @@
   <div class="toolbar">
     <button id="modeFormatBtn" class="mode-btn active">格式化</button>
     <button id="modeDiffBtn" class="mode-btn">Diff</button>
+    <span class="divider"></span>
+    <button id="historyBtn" class="mode-btn">历史</button>
     <span class="divider"></span>
     <select id="tzSelect">
       <option value="12">UTC+12 奥克兰</option>
@@ -216,6 +336,18 @@
       <div class="output" id="diffOutputB" contenteditable="true" spellcheck="false"></div>
     </div>
   </div>
+  <!-- 历史记录侧边栏 -->
+  <div id="historyPanel" class="history-drawer">
+    <div class="history-drawer-header">
+      <span>历史记录</span>
+      <button id="closeHistoryBtn" class="small-btn">关闭</button>
+    </div>
+    <div class="history-drawer-toolbar">
+      <button id="clearAllHistoryBtn" class="small-btn">清空全部</button>
+    </div>
+    <div class="history-drawer-list" id="historyList"></div>
+  </div>
+  <div id="historyOverlay" class="history-overlay"></div>
   <div class="toast" id="toast">已复制到剪贴板</div>
 
   <script src="popup.js"></script>

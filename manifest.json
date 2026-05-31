@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "JSON Formatter",
+  "name": "JSON Side",
   "version": "1.0.0",
   "description": "选中网页上的 JSON 文本，右键自动在新标签页打开格式化显示",
   "permissions": [

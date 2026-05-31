@@ -26,6 +26,25 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   }
 
   try {
+    // 保存到历史记录
+    const result = await chrome.storage.local.get('history');
+    const history = result.history || [];
+
+    // 去重
+    const exists = history.findIndex(h => h.json === selectedText);
+    if (exists >= 0) {
+      history.splice(exists, 1);
+    }
+
+    history.unshift({
+      json: selectedText,
+      source: 'right-click',
+      time: new Date().toISOString(),
+      preview: selectedText.substring(0, 60).replace(/\n/g, ' ')
+    });
+
+    await chrome.storage.local.set({ history: history.slice(0, 50) });
+
     // 将选中文本存储到 storage
     await chrome.storage.local.set({ jsonText: selectedText });
 

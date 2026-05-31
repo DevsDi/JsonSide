@@ -26,6 +26,76 @@ const clearDiffBtn = document.getElementById('clearDiffBtn');
 let formattedJson = '';
 let idCounter = 0;
 
+// ===================== 历史记录 =====================
+
+const MAX_HISTORY = 50;
+
+/**
+ * 保存到历史记录
+ * @param {string} jsonText - JSON 文本
+ * @param {string} source - 来源: 'manual' | 'right-click'
+ */
+async function saveToHistory(jsonText, source = 'manual') {
+  if (!jsonText || jsonText.trim().length < 2) return;
+
+  try {
+    const result = await chrome.storage.local.get('history');
+    const history = result.history || [];
+
+    // 去重：检查是否已存在相同内容
+    const exists = history.findIndex(h => h.json === jsonText);
+    if (exists >= 0) {
+      // 已存在，移到最前面
+      history.splice(exists, 1);
+    }
+
+    // 添加新记录
+    history.unshift({
+      json: jsonText,
+      source: source,
+      time: new Date().toISOString(),
+      preview: jsonText.substring(0, 60).replace(/\n/g, ' ')
+    });
+
+    // 限制条数
+    const limited = history.slice(0, MAX_HISTORY);
+    await chrome.storage.local.set({ history: limited });
+  } catch (e) {
+    console.error('保存历史记录失败:', e);
+  }
+}
+
+/**
+ * 获取历史记录
+ */
+async function getHistory() {
+  try {
+    const result = await chrome.storage.local.get('history');
+    return result.history || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+/**
+ * 清除历史记录
+ */
+async function clearHistory() {
+  await chrome.storage.local.remove('history');
+}
+
+/**
+ * 删除单条历史记录
+ */
+async function deleteHistoryItem(index) {
+  try {
+    const result = await chrome.storage.local.get('history');
+    const history = result.history || [];
+    history.splice(index, 1);
+    await chrome.storage.local.set({ history });
+  } catch (e) {}
+}
+
 // 初始化：加载时区设置和选中的 JSON
 async function init() {
   try {
@@ -135,6 +205,8 @@ function format() {
     formattedJson = JSON.stringify(obj, null, 2);
     output.innerHTML = render(obj);
     bindEvents();
+    // 保存到历史记录
+    saveToHistory(text, 'manual');
   } catch (e) {
     output.innerHTML = `<div class="error">解析失败: ${e.message}</div>`;
     formattedJson = '';
@@ -249,6 +321,139 @@ function switchMode(mode) {
 
 modeFormatBtn.onclick = () => switchMode('format');
 modeDiffBtn.onclick = () => switchMode('diff');
+
+// ===================== 历史记录面板 =====================
+
+const historyBtn = document.getElementById('historyBtn');
+const historyPanel = document.getElementById('historyPanel');
+const historyOverlay = document.getElementById('historyOverlay');
+const historyList = document.getElementById('historyList');
+const clearAllHistoryBtn = document.getElementById('clearAllHistoryBtn');
+const closeHistoryBtn = document.getElementById('closeHistoryBtn');
+
+/**
+ * 格式化时间显示（相对时间）
+ */
+function formatTime(isoString) {
+  const date = new Date(isoString);
+  const now = new Date();
+  const diff = now - date;
+
+  if (diff < 60000) return '刚刚';
+  if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前';
+  if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前';
+  if (diff < 604800000) return Math.floor(diff / 86400000) + '天前';
+
+  return date.toLocaleDateString('zh-CN');
+}
+
+/**
+ * 格式化完整时间（带时区转换）
+ * @param {string} isoString - ISO 时间字符串（UTC）
+ * @param {number} tzOffset - 时区偏移，如 8 表示 UTC+8
+ */
+function formatFullTime(isoString, tzOffset = 8) {
+  const date = new Date(isoString);
+  // 转換為指定時區的時間
+  const offsetMs = tzOffset * 3600000;
+  const localDate = new Date(date.getTime() + offsetMs);
+
+  const y = localDate.getUTCFullYear();
+  const m = String(localDate.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(localDate.getUTCDate()).padStart(2, '0');
+  const h = String(localDate.getUTCHours()).padStart(2, '0');
+  const min = String(localDate.getUTCMinutes()).padStart(2, '0');
+  const sec = String(localDate.getUTCSeconds()).padStart(2, '0');
+  return `${y}-${m}-${d} ${h}:${min}:${sec}`;
+}
+
+/**
+ * 渲染历史记录列表
+ */
+async function renderHistoryList() {
+  const history = await getHistory();
+  const tzOffset = Number(tzSelect.value);
+
+  if (history.length === 0) {
+    historyList.innerHTML = '<div class="history-empty">暂无历史记录</div>';
+    return;
+  }
+
+  historyList.innerHTML = history.map((item, index) => `
+    <div class="history-item" data-index="${index}">
+      <span class="history-icon ${item.source}">${item.source === 'right-click' ? '🔗' : '📋'}</span>
+      <div class="history-content">
+        <div class="history-preview">${escDiff(item.preview)}...</div>
+        <div class="history-meta">
+          <span class="history-time">${formatFullTime(item.time, tzOffset)}</span>
+          <span class="history-source">${item.source === 'right-click' ? '右键' : '手动'}</span>
+        </div>
+      </div>
+      <button class="history-delete" data-index="${index}">删除</button>
+    </div>
+  `).join('');
+
+  // 绑定点击事件
+  historyList.querySelectorAll('.history-item').forEach(el => {
+    el.onclick = (e) => {
+      if (e.target.classList.contains('history-delete')) return;
+      const index = parseInt(el.dataset.index);
+      loadHistoryItem(index);
+    };
+  });
+
+  // 绑定删除事件
+  historyList.querySelectorAll('.history-delete').forEach(el => {
+    el.onclick = async (e) => {
+      e.stopPropagation();
+      const index = parseInt(el.dataset.index);
+      await deleteHistoryItem(index);
+      renderHistoryList();
+    };
+  });
+}
+
+/**
+ * 加载历史记录项
+ */
+async function loadHistoryItem(index) {
+  const history = await getHistory();
+  if (history[index]) {
+    input.value = history[index].json;
+    format();
+    // 关闭侧边栏
+    closeHistoryDrawer();
+  }
+}
+
+/**
+ * 打开历史侧边栏
+ */
+function openHistoryDrawer() {
+  historyPanel.classList.add('show');
+  historyOverlay.classList.add('show');
+  renderHistoryList();
+}
+
+/**
+ * 关闭历史侧边栏
+ */
+function closeHistoryDrawer() {
+  historyPanel.classList.remove('show');
+  historyOverlay.classList.remove('show');
+}
+
+historyBtn.onclick = openHistoryDrawer;
+closeHistoryBtn.onclick = closeHistoryDrawer;
+historyOverlay.onclick = closeHistoryDrawer;
+
+// 清空全部历史
+clearAllHistoryBtn.onclick = async () => {
+  if (confirm('确定要清空所有历史记录吗？')) {
+    await clearHistory();
+    renderHistoryList();
+  }
+};
 
 // ===================== JSON Diff 功能 =====================
 
