@@ -289,12 +289,23 @@ init();
 
 // ===================== 模式切换 =====================
 
+const modeConvertBtn = document.getElementById('modeConvertBtn');
+const convertMode = document.getElementById('convertMode');
+const convertInput = document.getElementById('convertInput');
+const convertResult = document.getElementById('convertResult');
+const clearConvertBtn = document.getElementById('clearConvertBtn');
+const copyConvertBtn = document.getElementById('copyConvertBtn');
+
+let currentConvertType = 'typescript';
+
 function switchMode(mode) {
   if (mode === 'format') {
     modeFormatBtn.classList.add('active');
     modeDiffBtn.classList.remove('active');
+    modeConvertBtn.classList.remove('active');
     formatMode.style.display = 'grid';
     diffMode.style.display = 'none';
+    convertMode.style.display = 'none';
     // 显示格式化模式的按钮
     document.getElementById('tzSelect').style.display = '';
     document.getElementById('formatBtn').style.display = '';
@@ -303,11 +314,28 @@ function switchMode(mode) {
     document.getElementById('collapseBtn').style.display = '';
     document.getElementById('copyBtn').style.display = '';
     document.getElementById('clearBtn').style.display = '';
-  } else {
+  } else if (mode === 'diff') {
     modeFormatBtn.classList.remove('active');
     modeDiffBtn.classList.add('active');
+    modeConvertBtn.classList.remove('active');
     formatMode.style.display = 'none';
     diffMode.style.display = 'grid';
+    convertMode.style.display = 'none';
+    // 隐藏格式化模式的按钮
+    document.getElementById('tzSelect').style.display = 'none';
+    document.getElementById('formatBtn').style.display = 'none';
+    document.getElementById('formatTsBtn').style.display = 'none';
+    document.getElementById('expandBtn').style.display = 'none';
+    document.getElementById('collapseBtn').style.display = 'none';
+    document.getElementById('copyBtn').style.display = 'none';
+    document.getElementById('clearBtn').style.display = 'none';
+  } else if (mode === 'convert') {
+    modeFormatBtn.classList.remove('active');
+    modeDiffBtn.classList.remove('active');
+    modeConvertBtn.classList.add('active');
+    formatMode.style.display = 'none';
+    diffMode.style.display = 'none';
+    convertMode.style.display = 'grid';
     // 隐藏格式化模式的按钮
     document.getElementById('tzSelect').style.display = 'none';
     document.getElementById('formatBtn').style.display = 'none';
@@ -321,6 +349,7 @@ function switchMode(mode) {
 
 modeFormatBtn.onclick = () => switchMode('format');
 modeDiffBtn.onclick = () => switchMode('diff');
+modeConvertBtn.onclick = () => switchMode('convert');
 
 // ===================== 历史记录面板 =====================
 
@@ -821,4 +850,354 @@ clearDiffBtn.onclick = () => {
   diffRawB = '';
   diffOutputA.innerHTML = '';
   diffOutputB.innerHTML = '';
+};
+
+// ===================== JSON 转换功能 =====================
+
+/**
+ * 将 JSON 转换为 TypeScript 接口
+ * @param {object} data - JSON 对象
+ * @param {string} interfaceName - 接口名称
+ * @param {number} indent - 缩进级别
+ * @returns {string} TypeScript 接口定义
+ */
+function jsonToTypeScript(data, interfaceName = 'Root', indent = 0) {
+  const pad = '  '.repeat(indent);
+
+  if (data === null) {
+    return `${pad}type ${interfaceName} = null;\n`;
+  }
+
+  if (Array.isArray(data)) {
+    if (data.length === 0) {
+      return `${pad}type ${interfaceName} = any[];\n`;
+    }
+    // 分析数组元素类型
+    const firstItem = data[0];
+    if (typeof firstItem === 'object' && firstItem !== null) {
+      // 对象数组
+      const itemType = `${interfaceName}Item`;
+      let result = jsonToTypeScript(firstItem, itemType, indent);
+      result += `${pad}type ${interfaceName} = ${itemType}[];\n`;
+      return result;
+    } else {
+      // 基本类型数组
+      const tsType = getTsType(firstItem);
+      return `${pad}type ${interfaceName} = ${tsType}[];\n`;
+    }
+  }
+
+  if (typeof data === 'object') {
+    const keys = Object.keys(data);
+    if (keys.length === 0) {
+      return `${pad}interface ${interfaceName} {}\n`;
+    }
+
+    let result = `${pad}interface ${interfaceName} {\n`;
+    for (const key of keys) {
+      const value = data[key];
+      const tsType = getTsTypeFromValue(value, `${interfaceName}_${capitalize(key)}`, indent);
+      const optional = value === null ? '?' : '';
+      result += `${pad}  ${key}${optional}: ${tsType};\n`;
+    }
+    result += `${pad}}\n`;
+
+    // 为嵌套对象生成类型
+    for (const key of keys) {
+      const value = data[key];
+      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        result += jsonToTypeScript(value, `${interfaceName}_${capitalize(key)}`, indent);
+      }
+      if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object' && value[0] !== null) {
+        result += jsonToTypeScript(value[0], `${interfaceName}_${capitalize(key)}Item`, indent);
+      }
+    }
+
+    return result;
+  }
+
+  return `${pad}type ${interfaceName} = ${getTsType(data)};\n`;
+}
+
+/**
+ * 获取 TypeScript 类型字符串
+ */
+function getTsType(value) {
+  if (value === null) return 'null';
+  if (value === undefined) return 'undefined';
+  if (typeof value === 'string') return 'string';
+  if (typeof value === 'number') return 'number';
+  if (typeof value === 'boolean') return 'boolean';
+  if (Array.isArray(value)) return 'any[]';
+  if (typeof value === 'object') return 'object';
+  return 'any';
+}
+
+/**
+ * 根据值获取 TypeScript 类型（支持嵌套类型名）
+ */
+function getTsTypeFromValue(value, typeName, indent) {
+  if (value === null) return 'null | undefined';
+  if (typeof value === 'string') return 'string';
+  if (typeof value === 'number') return 'number';
+  if (typeof value === 'boolean') return 'boolean';
+  if (Array.isArray(value)) {
+    if (value.length === 0) return 'any[]';
+    const firstItem = value[0];
+    if (typeof firstItem === 'object' && firstItem !== null) {
+      return `${typeName}Item[]`;
+    }
+    return `${getTsType(firstItem)}[]`;
+  }
+  if (typeof value === 'object') {
+    return typeName;
+  }
+  return 'any';
+}
+
+/**
+ * 首字母大写
+ */
+function capitalize(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+/**
+ * 将 JSON 转换为 Go struct
+ * @param {object} data - JSON 对象
+ * @param {string} structName - 结构体名称
+ * @param {number} indent - 缩进级别
+ * @param {Set} generatedStructs - 已生成的结构体（避免重复）
+ * @returns {string} Go struct 定义
+ */
+function jsonToGo(data, structName = 'Root', indent = 0, generatedStructs = new Set()) {
+  const pad = '\t'.repeat(indent);
+
+  if (data === null || typeof data !== 'object') {
+    return `${pad}// ${structName} is a primitive type\n`;
+  }
+
+  if (Array.isArray(data)) {
+    if (data.length === 0) {
+      return `${pad}type ${structName} []any\n\n`;
+    }
+    const firstItem = data[0];
+    if (typeof firstItem === 'object' && firstItem !== null) {
+      const itemName = `${structName}Item`;
+      let result = jsonToGo(firstItem, itemName, indent, generatedStructs);
+      result = result.replace(`type ${itemName} struct`, `type ${structName} []${itemName}`);
+      return result;
+    } else {
+      const goType = getGoType(firstItem);
+      return `${pad}type ${structName} []${goType}\n\n`;
+    }
+  }
+
+  // 避免重复生成
+  if (generatedStructs.has(structName)) {
+    return '';
+  }
+  generatedStructs.add(structName);
+
+  const keys = Object.keys(data);
+  if (keys.length === 0) {
+    return `${pad}type ${structName} struct {}\n\n`;
+  }
+
+  let result = `${pad}type ${structName} struct {\n`;
+  for (const key of keys) {
+    const value = data[key];
+    const goType = getGoTypeFromValue(value, `${structName}${capitalize(key)}`, indent, generatedStructs);
+    const jsonTag = key;
+    const fieldName = capitalize(key);
+    result += `${pad}\t${fieldName} ${goType} \`json:"${jsonTag}"\`\n`;
+  }
+  result += `${pad}}\n\n`;
+
+  // 为嵌套对象生成结构体
+  for (const key of keys) {
+    const value = data[key];
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      result += jsonToGo(value, `${structName}${capitalize(key)}`, indent, generatedStructs);
+    }
+    if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object' && value[0] !== null) {
+      result += jsonToGo(value[0], `${structName}${capitalize(key)}Item`, indent, generatedStructs);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * 获取 Go 类型字符串
+ */
+function getGoType(value) {
+  if (value === null) return 'any';
+  if (typeof value === 'string') return 'string';
+  if (typeof value === 'number') {
+    // 判断是整数还是浮点数
+    if (Number.isInteger(value)) return 'int64';
+    return 'float64';
+  }
+  if (typeof value === 'boolean') return 'bool';
+  if (Array.isArray(value)) return '[]any';
+  if (typeof value === 'object') return 'struct{}';
+  return 'any';
+}
+
+/**
+ * 根据值获取 Go 类型（支持嵌套结构体名）
+ */
+function getGoTypeFromValue(value, typeName, indent, generatedStructs) {
+  if (value === null) return 'any';
+  if (typeof value === 'string') return 'string';
+  if (typeof value === 'number') {
+    if (Number.isInteger(value)) return 'int64';
+    return 'float64';
+  }
+  if (typeof value === 'boolean') return 'bool';
+  if (Array.isArray(value)) {
+    if (value.length === 0) return '[]any';
+    const firstItem = value[0];
+    if (typeof firstItem === 'object' && firstItem !== null) {
+      return `[]${typeName}Item`;
+    }
+    return `[]${getGoType(firstItem)}`;
+  }
+  if (typeof value === 'object') {
+    return typeName;
+  }
+  return 'any';
+}
+
+/**
+ * 将 JSON 转换为 YAML
+ * @param {object} data - JSON 对象
+ * @param {number} indent - 缩进级别
+ * @returns {string} YAML 字符串
+ */
+function jsonToYaml(data, indent = 0) {
+  const pad = '  '.repeat(indent);
+
+  if (data === null) {
+    return 'null';
+  }
+
+  if (typeof data === 'string') {
+    // 如果包含特殊字符，用引号包裹
+    if (data.includes(':') || data.includes('#') || data.includes('\n') || data.includes('"')) {
+      return `"${data.replace(/"/g, '\\"')}"`;
+    }
+    return data;
+  }
+
+  if (typeof data === 'number') {
+    return String(data);
+  }
+
+  if (typeof data === 'boolean') {
+    return data ? 'true' : 'false';
+  }
+
+  if (Array.isArray(data)) {
+    if (data.length === 0) {
+      return '[]';
+    }
+    return data.map(item => {
+      const value = jsonToYaml(item, indent + 1);
+      if (typeof item === 'object' && item !== null) {
+        return `- \n${value.split('\n').map(line => '  ' + line).join('\n')}`;
+      }
+      return `- ${value}`;
+    }).join('\n' + pad);
+  }
+
+  if (typeof data === 'object') {
+    const keys = Object.keys(data);
+    if (keys.length === 0) {
+      return '{}';
+    }
+
+    return keys.map(key => {
+      const value = data[key];
+      const yamlValue = jsonToYaml(value, indent + 1);
+
+      if (typeof value === 'object' && value !== null) {
+        if (Array.isArray(value) && value.length > 0) {
+          return `${key}:\n${yamlValue.split('\n').map(line => '  ' + line).join('\n')}`;
+        } else if (!Array.isArray(value)) {
+          return `${key}:\n${yamlValue.split('\n').map(line => '  ' + line).join('\n')}`;
+        }
+      }
+
+      return `${key}: ${yamlValue}`;
+    }).join('\n' + pad);
+  }
+
+  return String(data);
+}
+
+/**
+ * 执行转换
+ */
+function doConvert() {
+  const text = convertInput.value.trim();
+  if (!text) {
+    convertResult.textContent = '';
+    return;
+  }
+
+  try {
+    const data = JSON.parse(text);
+    let result = '';
+
+    switch (currentConvertType) {
+      case 'typescript':
+        result = jsonToTypeScript(data);
+        break;
+      case 'go':
+        result = jsonToGo(data);
+        break;
+      case 'yaml':
+        result = jsonToYaml(data);
+        break;
+    }
+
+    convertResult.textContent = result;
+    convertResult.style.color = 'var(--text)';
+  } catch (e) {
+    convertResult.textContent = `解析失败: ${e.message}`;
+    convertResult.style.color = '#f48771';
+  }
+}
+
+// 转换类型标签点击
+document.querySelectorAll('.convert-tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.convert-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentConvertType = tab.dataset.type;
+    doConvert();
+  };
+});
+
+// 输入框事件
+convertInput.addEventListener('input', () => {
+  clearTimeout(convertInput._timer);
+  convertInput._timer = setTimeout(doConvert, 300);
+});
+
+// 清空
+clearConvertBtn.onclick = () => {
+  convertInput.value = '';
+  convertResult.textContent = '';
+};
+
+// 复制
+copyConvertBtn.onclick = async () => {
+  const text = convertResult.textContent;
+  if (text) {
+    await navigator.clipboard.writeText(text);
+    showToast();
+  }
 };

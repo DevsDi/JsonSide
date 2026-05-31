@@ -265,6 +265,48 @@
       color: #666;
       font-size: 14px;
     }
+    /* 转换模式 */
+    .convert-output {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-head);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .convert-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .convert-tab {
+      padding: 8px 16px;
+      background: transparent;
+      border: none;
+      color: #888;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+      border-bottom: 2px solid transparent;
+    }
+    .convert-tab:hover {
+      color: var(--text);
+    }
+    .convert-tab.active {
+      color: var(--text);
+      border-bottom-color: var(--accent);
+    }
+    .convert-result {
+      flex: 1;
+      padding: 12px;
+      overflow: auto;
+      font-family: Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
   </style>
 </head>
 <body>
@@ -272,6 +314,7 @@
   <div class="toolbar">
     <button id="modeFormatBtn" class="mode-btn active">格式化</button>
     <button id="modeDiffBtn" class="mode-btn">Diff</button>
+    <button id="modeConvertBtn" class="mode-btn">转换</button>
     <span class="divider"></span>
     <button id="historyBtn" class="mode-btn">历史</button>
     <span class="divider"></span>
@@ -334,6 +377,30 @@
         <button id="clearDiffBtn" class="small-btn">Clear</button>
       </div>
       <div class="output" id="diffOutputB" contenteditable="true" spellcheck="false"></div>
+    </div>
+  </div>
+  <!-- 转換模式 -->
+  <div id="convertMode" class="main" style="display: none;">
+    <div class="panel">
+      <div class="panel-label diff-toolbar">
+        <span>JSON 输入</span>
+        <button id="clearConvertBtn" class="small-btn">清空</button>
+      </div>
+      <textarea id="convertInput" placeholder='粘贴 JSON，如：{"name": "test", "age": 18}'></textarea>
+    </div>
+    <div class="panel">
+      <div class="panel-label diff-toolbar">
+        <span>转换结果</span>
+        <button id="copyConvertBtn" class="small-btn">复制</button>
+      </div>
+      <div class="convert-output" id="convertOutput">
+        <div class="convert-tabs">
+          <button class="convert-tab active" data-type="typescript">TypeScript</button>
+          <button class="convert-tab" data-type="go">Go struct</button>
+          <button class="convert-tab" data-type="yaml">YAML</button>
+        </div>
+        <div class="convert-result" id="convertResult"></div>
+      </div>
     </div>
   </div>
   <!-- 历史记录侧边栏 -->
