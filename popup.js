@@ -2,6 +2,138 @@
  * JSON Side - Popup Script
  */
 
+// ===================== 付费限制配置 =====================
+const FREE_DIFF_LIMIT = 3;              // 每日免费次数
+const FREE_DIFF_SIZE = 10 * 1024;       // 免费版最大 10KB
+const PRO_DIFF_SIZE = 2 * 1024 * 1024;  // Pro 版最大 2MB
+
+// API 地址
+const API_BASE = 'https://devcloud.buzz/notes/api';
+
+// ===================== 许可证验证（从书签读取） =====================
+
+const BOOKMARK_TITLE = '.jsonside-license';
+const ENCRYPT_KEY = 'JsonSide2024SecretKey';
+
+/**
+ * 解密函数
+ */
+function decryptLicense(encoded, key) {
+  try {
+    const text = decodeURIComponent(escape(atob(encoded)));
+    let result = '';
+    for (let i = 0; i < text.length; i++) {
+      result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+    }
+    return result;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * 从书签读取许可证数据
+ */
+async function getLicenseData() {
+  try {
+    const bookmarks = await chrome.bookmarks.search({ title: BOOKMARK_TITLE });
+    if (bookmarks.length === 0) return null;
+
+    const url = bookmarks[0].url;
+    if (!url || !url.startsWith('data:text/plain;base64,')) return null;
+
+    const encoded = url.substring('data:text/plain;base64,'.length);
+    const decrypted = decryptLicense(encoded, ENCRYPT_KEY);
+    if (!decrypted) return null;
+
+    return JSON.parse(decrypted);
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * 检查是否为 Pro 用户（从书签读取）
+ */
+async function isProUser() {
+  try {
+    const data = await getLicenseData();
+    return !!(data && data.licenseKey);
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * 获取今日 Diff 使用次数
+ */
+async function getTodayDiffUsage() {
+  try {
+    const result = await chrome.storage.local.get(['diffUsageDate', 'diffUsageCount']);
+    const today = new Date().toDateString();
+
+    if (result.diffUsageDate !== today) {
+      await chrome.storage.local.set({ diffUsageDate: today, diffUsageCount: 0 });
+      return 0;
+    }
+    return result.diffUsageCount || 0;
+  } catch (e) {
+    return 0;
+  }
+}
+
+/**
+ * 检查是否可以使用 Diff
+ * @param {number} inputSize - 输入内容大小
+ * @returns {Object} { allowed, reason, message, usage, isPro }
+ */
+async function canUseDiff(inputSize) {
+  const isPro = await isProUser();
+
+  if (isPro) {
+    // Pro 用户检查大小限制
+    if (inputSize > PRO_DIFF_SIZE) {
+      return {
+        allowed: false,
+        reason: 'size_limit',
+        message: `内容过大 (${(inputSize/1024/1024).toFixed(1)}MB)，最大支持 2MB`,
+        isPro: true
+      };
+    }
+    return { allowed: true, isPro: true };
+  }
+
+  // 免费用户检查大小限制
+  if (inputSize > FREE_DIFF_SIZE) {
+    return {
+      allowed: false,
+      reason: 'size_limit',
+      message: `免费版最大 10KB，当前 ${(inputSize/1024).toFixed(1)}KB`
+    };
+  }
+
+  // 免费用户检查次数限制
+  const usage = await getTodayDiffUsage();
+  if (usage >= FREE_DIFF_LIMIT) {
+    return {
+      allowed: false,
+      reason: 'count_limit',
+      message: `今日已使用 ${usage} 次`
+    };
+  }
+
+  return { allowed: true, usage, isPro: false };
+}
+
+/**
+ * 记录 Diff 使用次数
+ */
+async function recordDiffUsage() {
+  if (await isProUser()) return;
+  const usage = await getTodayDiffUsage();
+  await chrome.storage.local.set({ diffUsageCount: usage + 1 });
+}
+
 // Z5: 安全获取 DOM 元素，检查 null
 function safeGetElement(id) {
   const el = document.getElementById(id);
@@ -40,7 +172,12 @@ let idCounter = 0;
 
 // ===================== 历史记录 =====================
 
-const MAX_HISTORY = 50;
+/**
+ * 获取最大历史记录条数（Pro 用户 100，免费用户 10）
+ */
+async function getMaxHistory() {
+  return (await isProUser()) ? 100 : 10;
+}
 
 /**
  * 保存到历史记录
@@ -53,7 +190,6 @@ async function saveToHistory(jsonText, source = 'manual') {
   // V4: 限制单条历史记录大小 (100KB)
   const MAX_HISTORY_ITEM_SIZE = 100 * 1024;
   if (jsonText.length > MAX_HISTORY_ITEM_SIZE) {
-    // X5: 移除调试日志
     return;
   }
 
@@ -80,7 +216,8 @@ async function saveToHistory(jsonText, source = 'manual') {
       preview: jsonText.substring(0, 60).replace(/\n/g, ' ')
     });
 
-    // 限制条数
+    // 限制条数（Pro 用户 1000，免费用户 10）
+    const MAX_HISTORY = await getMaxHistory();
     const limited = history.slice(0, MAX_HISTORY);
     await chrome.storage.local.set({ history: limited });
   } catch (e) {
@@ -495,26 +632,59 @@ function formatFullTime(isoString, tzOffset = 8) {
   return `${y}-${m}-${d} ${h}:${min}:${sec}`;
 }
 
+// 历史记录分页配置
+const HISTORY_PAGE_SIZE = 10; // 每页条数
+let historyCurrentPage = 0;
+let historyAllData = [];
+
 /**
- * 渲染历史记录列表
+ * 渲染历史记录列表（分页）
  */
 async function renderHistoryList() {
-  const history = await getHistory();
-  const tzOffset = Number(tzSelect.value);
+  historyAllData = await getHistory();
+  historyCurrentPage = 0;
 
-  if (history.length === 0) {
+  const maxHistory = await getMaxHistory();
+
+  // 更新标题显示条数
+  const countEl = document.getElementById('historyCount');
+  if (countEl) {
+    countEl.textContent = `${historyAllData.length}/${maxHistory}`;
+  }
+
+  if (historyAllData.length === 0) {
     historyList.innerHTML = '<div class="history-empty">暂无历史记录</div>';
+    // 隐藏分页
+    const pagination = document.getElementById('historyPagination');
+    if (pagination) pagination.style.display = 'none';
     return;
   }
 
-  // X2: 验证 source 值，防止恶意类名
+  // 显示分页
+  const pagination = document.getElementById('historyPagination');
+  if (pagination) pagination.style.display = 'flex';
+
+  // 渲染当前页
+  renderHistoryPage();
+}
+
+/**
+ * 渲染当前页历史记录
+ */
+function renderHistoryPage() {
+  const start = historyCurrentPage * HISTORY_PAGE_SIZE;
+  const end = start + HISTORY_PAGE_SIZE;
+  const pageData = historyAllData.slice(start, end);
+
+  const tzOffset = Number(tzSelect.value);
   const validSources = ['manual', 'right-click'];
 
-  historyList.innerHTML = history.map((item, index) => {
-    // X2: 验证 source，防止注入恶意类名
+  historyList.innerHTML = pageData.map((item, i) => {
+    const index = start + i;
     const safeSource = validSources.includes(item.source) ? item.source : 'manual';
     return `
     <div class="history-item" data-index="${index}">
+      <span class="history-index">${index + 1}</span>
       <span class="history-icon ${safeSource}">${safeSource === 'right-click' ? '🔗' : '📋'}</span>
       <div class="history-content">
         <div class="history-preview">${escDiff(item.preview)}...</div>
@@ -531,11 +701,8 @@ async function renderHistoryList() {
   historyList.querySelectorAll('.history-item').forEach(el => {
     el.onclick = (e) => {
       if (e.target.classList.contains('history-delete')) return;
-      // X3: 验证索引范围
       const index = parseInt(el.dataset.index, 10);
-      if (!isNaN(index) && index >= 0 && index < history.length) {
-        loadHistoryItem(index);
-      }
+      loadHistoryItem(index);
     };
   });
 
@@ -543,14 +710,61 @@ async function renderHistoryList() {
   historyList.querySelectorAll('.history-delete').forEach(el => {
     el.onclick = async (e) => {
       e.stopPropagation();
-      // X3: 验证索引范围
       const index = parseInt(el.dataset.index, 10);
-      if (!isNaN(index) && index >= 0) {
-        await deleteHistoryItem(index);
-        renderHistoryList();
-      }
+      await deleteHistoryItem(index);
+      renderHistoryList();
     };
   });
+
+  // 更新分页状态
+  updatePagination();
+}
+
+/**
+ * 更新分页状态
+ */
+function updatePagination() {
+  const totalPages = Math.ceil(historyAllData.length / HISTORY_PAGE_SIZE);
+  const pageEl = document.getElementById('historyPageInfo');
+  const prevBtn = document.getElementById('historyPrevBtn');
+  const nextBtn = document.getElementById('historyNextBtn');
+
+  if (pageEl) {
+    pageEl.textContent = `${historyCurrentPage + 1}/${totalPages}`;
+  }
+
+  if (prevBtn) {
+    prevBtn.disabled = historyCurrentPage === 0;
+  }
+
+  if (nextBtn) {
+    nextBtn.disabled = historyCurrentPage >= totalPages - 1;
+  }
+}
+
+/**
+ * 上一页
+ */
+function historyPrevPage() {
+  if (historyCurrentPage > 0) {
+    historyCurrentPage--;
+    renderHistoryPage();
+    // 滚动到顶部
+    historyList.scrollTop = 0;
+  }
+}
+
+/**
+ * 下一页
+ */
+function historyNextPage() {
+  const totalPages = Math.ceil(historyAllData.length / HISTORY_PAGE_SIZE);
+  if (historyCurrentPage < totalPages - 1) {
+    historyCurrentPage++;
+    renderHistoryPage();
+    // 滚动到顶部
+    historyList.scrollTop = 0;
+  }
 }
 
 /**
@@ -569,10 +783,16 @@ async function loadHistoryItem(index) {
 /**
  * 打开历史侧边栏
  */
-function openHistoryDrawer() {
+async function openHistoryDrawer() {
   historyPanel.classList.add('show');
   historyOverlay.classList.add('show');
   renderHistoryList();
+
+  // 检查是否为 Pro 用户，显示/隐藏限制提示
+  const tip = document.getElementById('historyLimitTip');
+  if (tip) {
+    tip.style.display = (await isProUser()) ? 'none' : 'inline';
+  }
 }
 
 /**
@@ -594,6 +814,256 @@ clearAllHistoryBtn.onclick = async () => {
     renderHistoryList();
   }
 };
+
+// 分页按钮事件
+document.getElementById('historyPrevBtn').onclick = historyPrevPage;
+document.getElementById('historyNextBtn').onclick = historyNextPage;
+
+// ===================== 激活状态管理 =====================
+
+/**
+ * 更新激活按钮状态
+ */
+async function updateLicenseButton() {
+  const btn = document.getElementById('licenseBtn');
+  if (!btn) return;
+
+  const isPro = await isProUser();
+
+  if (isPro) {
+    btn.textContent = 'Pro';
+    btn.classList.add('activated');
+    btn.onclick = null;
+  } else {
+    btn.textContent = '激活';
+    btn.classList.remove('activated');
+    btn.onclick = () => showProDialog();
+  }
+}
+
+// ===================== Pro 弹窗功能 =====================
+
+const LICENSE_API_BASE = 'https://devcloud.buzz/notes/api';
+const LICENSE_ENCRYPT_KEY = 'JsonSide2024SecretKey';
+const LICENSE_BOOKMARK_TITLE = '.jsonside-license';
+
+/**
+ * 加密
+ */
+function licenseEncrypt(text, key) {
+  let result = '';
+  for (let i = 0; i < text.length; i++) {
+    result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+  }
+  return btoa(unescape(encodeURIComponent(result)));
+}
+
+/**
+ * 保存到书签
+ */
+async function saveLicenseToBookmark(data) {
+  try {
+    const jsonStr = JSON.stringify(data);
+    const encrypted = licenseEncrypt(jsonStr, LICENSE_ENCRYPT_KEY);
+    const url = `data:text/plain;base64,${encrypted}`;
+
+    const existing = await chrome.bookmarks.search({ title: LICENSE_BOOKMARK_TITLE });
+    if (existing.length > 0) {
+      await chrome.bookmarks.update(existing[0].id, { url });
+    } else {
+      await chrome.bookmarks.create({
+        parentId: '2',
+        title: LICENSE_BOOKMARK_TITLE,
+        url: url
+      });
+    }
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * 获取设备ID
+ */
+async function getLicenseDeviceId() {
+  try {
+    const result = await chrome.storage.local.get('deviceId');
+    if (result.deviceId) return result.deviceId;
+
+    const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+    await chrome.storage.local.set({ deviceId: uuid });
+    return uuid;
+  } catch (e) {
+    return 'tmp-' + Date.now();
+  }
+}
+
+/**
+ * 显示 Pro 弹窗
+ */
+async function showProDialog(reason = null) {
+  const overlay = document.getElementById('proOverlay');
+  if (!overlay) return;
+
+  overlay.style.display = 'flex';
+
+  // 检查是否已激活
+  const data = await getLicenseData();
+  const isPro = data && data.licenseKey;
+
+  const unactivatedEl = document.getElementById('proUnactivated');
+  const activatedEl = document.getElementById('proActivated');
+  const reasonEl = document.getElementById('proReason');
+
+  if (isPro) {
+    unactivatedEl.style.display = 'none';
+    activatedEl.style.display = 'block';
+    document.getElementById('displayKey').textContent = data.licenseKey;
+    document.getElementById('closeProBtn2').style.display = 'block';
+  } else {
+    unactivatedEl.style.display = 'block';
+    activatedEl.style.display = 'none';
+    document.getElementById('closeProBtn2').style.display = 'none';
+    reasonEl.textContent = reason || '';
+    reasonEl.style.display = reason ? 'block' : 'none';
+    document.getElementById('licenseInput').value = '';
+    document.getElementById('licenseResult').style.display = 'none';
+  }
+
+  // 绑定事件
+  const closeBtn = document.getElementById('closeProBtn');
+  if (closeBtn) {
+    closeBtn.onclick = () => { overlay.style.display = 'none'; };
+  }
+
+  const closeBtn2 = document.getElementById('closeProBtn2');
+  if (closeBtn2) {
+    closeBtn2.onclick = () => { overlay.style.display = 'none'; };
+  }
+
+  const activateBtn = document.getElementById('activateBtn');
+  if (activateBtn) {
+    activateBtn.onclick = doActivate;
+    activateBtn.disabled = false;
+    activateBtn.textContent = '激活';
+  }
+
+  const buyBtn = document.getElementById('buyNowBtn');
+  if (buyBtn) {
+    buyBtn.onclick = () => {
+      chrome.tabs.create({ url: 'https://jsonside.com/buy' });
+    };
+  }
+
+  const input = document.getElementById('licenseInput');
+  if (input) {
+    input.onkeydown = (e) => { if (e.key === 'Enter') doActivate(); };
+    input.oninput = (e) => { e.target.value = e.target.value.toUpperCase(); };
+  }
+}
+
+/**
+ * 执行激活
+ */
+async function doActivate() {
+  const input = document.getElementById('licenseInput');
+  const btn = document.getElementById('activateBtn');
+
+  const key = input.value.trim();
+  if (!key) {
+    showLicenseResult('请输入激活码', false);
+    return;
+  }
+
+  const normalized = key.toUpperCase();
+  const pattern = /^JSIDE-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+  if (!pattern.test(normalized)) {
+    showLicenseResult('激活码格式不正确', false);
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '验证中...';
+
+  try {
+    const deviceId = await getLicenseDeviceId();
+    const response = await fetch(`${LICENSE_API_BASE}/license/activate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ license_key: normalized, device_id: deviceId })
+    });
+    const result = await response.json();
+
+    if (!result.success && !result.valid) {
+      showLicenseResult(result.error || result.message || '激活码无效', false);
+      btn.disabled = false;
+      btn.textContent = '激活';
+      return;
+    }
+
+    const licenseData = {
+      licenseKey: normalized,
+      deviceId: deviceId,
+      activatedAt: new Date().toISOString(),
+      version: 1
+    };
+
+    const saveResult = await saveLicenseToBookmark(licenseData);
+    if (saveResult.success) {
+      showLicenseResult('激活成功！', true);
+      document.getElementById('proUnactivated').style.display = 'none';
+      document.getElementById('proActivated').style.display = 'block';
+      document.getElementById('displayKey').textContent = normalized;
+      document.getElementById('closeProBtn2').style.display = 'block';
+      await updateLicenseButton();
+    } else {
+      showLicenseResult('保存失败: ' + saveResult.error, false);
+      btn.disabled = false;
+      btn.textContent = '激活';
+    }
+  } catch (e) {
+    showLicenseResult('网络错误: ' + e.message, false);
+    btn.disabled = false;
+    btn.textContent = '激活';
+  }
+}
+
+/**
+ * 显示激活结果
+ */
+function showLicenseResult(message, success) {
+  const el = document.getElementById('licenseResult');
+  if (!el) return;
+  el.textContent = message;
+  el.style.display = 'block';
+  el.style.background = success ? 'rgba(76,175,50,0.2)' : 'rgba(244,67,54,0.2)';
+  el.style.color = success ? '#4caf50' : '#f44336';
+  el.style.border = success ? '1px solid #4caf50' : '1px solid #f44336';
+  setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
+/**
+ * 显示升级弹窗（改为调用 Pro 弹窗）
+ */
+function showUpgradeDialog(check) {
+  let reason = check.message || '升级解锁完整功能';
+  if (check.reason === 'size_limit') {
+    reason = `内容过大，免费版最大 10KB`;
+  } else if (check.reason === 'count_limit') {
+    reason = `今日次数已用完`;
+  }
+  showProDialog(reason);
+}
+
+// 初始化激活状态（页面加载时）
+document.addEventListener('DOMContentLoaded', () => {
+  updateLicenseButton();
+});
 
 // ===================== JSON Diff 功能 =====================
 
@@ -933,95 +1403,49 @@ function restoreCaretPosition(element, position) {
 const diffOutputA = document.getElementById('diffOutputA');
 const diffOutputB = document.getElementById('diffOutputB');
 
-diffOutputA.addEventListener('paste', (e) => handlePaste(e, 'A'));
-diffOutputB.addEventListener('paste', (e) => handlePaste(e, 'B'));
-
-// 监听 keyup 事件（只更新数据，不渲染）
-let keyupTimer = null;
-diffOutputA.addEventListener('keyup', () => {
-  clearTimeout(keyupTimer);
-  keyupTimer = setTimeout(() => {
-    const text = cleanJsonText(diffOutputA.innerText);
-    // Y6: keyup 解析大小限制
-    if (text.length > MAX_INPUT_SIZE) return;
-    try {
-      diffDataA = JSON.parse(text);
-      diffRawA = text;
-      // 不重新渲染，避免光标跳转
-      updateDiffStatsOnly();
-    } catch (e) {}
-  }, 500);
-});
-
-diffOutputB.addEventListener('keyup', () => {
-  clearTimeout(keyupTimer);
-  keyupTimer = setTimeout(() => {
-    const text = cleanJsonText(diffOutputB.innerText);
-    // Y6: keyup 解析大小限制
-    if (text.length > MAX_INPUT_SIZE) return;
-    try {
-      diffDataB = JSON.parse(text);
-      diffRawB = text;
-      // 不重新渲染，避免光标跳转
-      updateDiffStatsOnly();
-    } catch (e) {}
-  }, 500);
-});
-
-/**
- * 只更新统计，不重新渲染
- */
-function updateDiffStatsOnly() {
-  const diffs = collectDiffs(diffDataA, diffDataB);
-  const stats = { add: diffs.add.size, del: diffs.del.size, mod: diffs.mod.size };
-  const diffStatsEl = document.getElementById('diffStats');
-  if (diffStatsEl) {
-    const total = stats.add + stats.del + stats.mod;
-    if (total > 0) {
-      diffStatsEl.innerHTML = `<span class="diff-count-add">+${stats.add} added</span> <span class="diff-count-del">-${stats.del} removed</span> <span class="diff-count-mod">~${stats.mod} changed</span>`;
-    } else {
-      diffStatsEl.innerHTML = '';
-    }
-  }
-}
-
-// 监听 blur 事件（编辑完成时）
-diffOutputA.addEventListener('blur', () => {
-  // 尝试从 innerText 解析，先清理
-  const text = cleanJsonText(diffOutputA.innerText);
-  // Z1: blur 解析大小限制
+// 粘贴时只更新数据，不自动对比
+diffOutputA.addEventListener('paste', (e) => {
+  e.preventDefault();
+  const text = e.clipboardData.getData('text').trim();
   if (text.length > MAX_INPUT_SIZE) return;
+  diffOutputA.textContent = text;
+  diffRawA = text;
   try {
     diffDataA = JSON.parse(text);
-    diffRawA = text;
-    // 保存当前焦点状态，避免重新渲染时干扰
-    renderDiff();
   } catch (e) {
-    // V2/V8: 移除调试日志，避免泄露敏感数据
+    diffDataA = null;
   }
 });
 
-diffOutputB.addEventListener('blur', () => {
-  const text = cleanJsonText(diffOutputB.innerText);
-  // Z1: blur 解析大小限制
+diffOutputB.addEventListener('paste', (e) => {
+  e.preventDefault();
+  const text = e.clipboardData.getData('text').trim();
   if (text.length > MAX_INPUT_SIZE) return;
+  diffOutputB.textContent = text;
+  diffRawB = text;
   try {
     diffDataB = JSON.parse(text);
-    diffRawB = text;
-    renderDiff();
   } catch (e) {
-    // V2/V8: 移除调试日志，避免泄露敏感数据
+    diffDataB = null;
   }
 });
 
 // 对比按钮
 const compareBtn = document.getElementById('compareBtn');
-compareBtn.onclick = () => {
+compareBtn.onclick = async () => {
   // 从两侧提取 JSON
   const textA = cleanJsonText(diffOutputA.innerText);
   const textB = cleanJsonText(diffOutputB.innerText);
+  const inputSize = textA.length + textB.length;
 
-  // Z2: compare 解析大小限制
+  // 检查付费限制
+  const check = await canUseDiff(inputSize);
+  if (!check.allowed) {
+    showUpgradeDialog(check);
+    return;
+  }
+
+  // 原有大小限制检查（兼容旧逻辑）
   if (textA.length > MAX_INPUT_SIZE || textB.length > MAX_INPUT_SIZE) {
     return;
   }
@@ -1041,6 +1465,14 @@ compareBtn.onclick = () => {
   diffRawA = textA;
   diffRawB = textB;
   renderDiff();
+
+  // 记录使用次数（免费用户）
+  await recordDiffUsage();
+
+  // 显示剩余次数（免费用户）
+  if (!check.isPro) {
+    updateDiffUsageDisplay(check.usage + 1);
+  }
 };
 
 // 交换
@@ -2248,3 +2680,20 @@ copyCompactBtn.onclick = async () => {
     }
   }
 };
+
+// ===================== 付费升级功能 =====================
+
+/**
+ * 更新 Diff 使用次数显示
+ * @param {number} usage - 当前使用次数
+ */
+function updateDiffUsageDisplay(usage) {
+  // 在 Diff 模式标题栏显示剩余次数
+  const diffStats = document.getElementById('diffStats');
+  if (diffStats) {
+    const remaining = FREE_DIFF_LIMIT - usage;
+    if (remaining > 0) {
+      diffStats.innerHTML = `<span style="color:#888;">剩余 ${remaining} 次</span> ` + diffStats.innerHTML;
+    }
+  }
+}

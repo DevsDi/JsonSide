@@ -22,7 +22,37 @@
       min-height: 100vh;
       padding: 20px;
     }
-    h1 { font-size: 24px; margin-bottom: 16px; }
+    h1 { font-size: 24px; margin-bottom: 0; display: inline-block; }
+    .header-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    /* 激活按钮样式 */
+    .license-btn {
+      background: rgba(255, 152, 0, 0.15);
+      border: 1px solid rgba(255, 152, 0, 0.4);
+      color: #ffb74d;
+      font-weight: 500;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      transition: all 0.2s ease;
+    }
+    .license-btn:hover {
+      background: rgba(255, 152, 0, 0.25);
+      border-color: rgba(255, 152, 0, 0.6);
+    }
+    .license-btn.activated {
+      background: rgba(76, 175, 80, 0.15);
+      border-color: rgba(76, 175, 80, 0.4);
+      color: #81c784;
+      cursor: default;
+    }
+    .license-btn.activated:hover {
+      background: rgba(76, 175, 80, 0.15);
+    }
     .toolbar {
       display: flex;
       gap: 8px;
@@ -129,6 +159,11 @@
     .diff-toolbar span { flex: 1; }
     .small-btn { padding: 4px 10px; font-size: 12px; }
     .primary-btn { background: var(--accent); }
+    /* 下拉框滚动条样式 */
+    select::-webkit-scrollbar { width: 8px; }
+    select::-webkit-scrollbar-track { background: var(--bg); }
+    select::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    select::-webkit-scrollbar-thumb:hover { background: #555; }
     /* Diff 高亮 */
     .diff-add { background: rgba(76, 175, 50, 0.6); border-left: 4px solid #4caf50; }
     .diff-del { background: rgba(244, 67, 54, 0.6); border-left: 4px solid #f44336; }
@@ -191,6 +226,58 @@
       font-weight: bold;
       color: var(--text);
       background: var(--bg);
+    }
+    .history-limit-tip {
+      font-size: 12px;
+      font-weight: normal;
+      color: #888;
+      margin-left: 4px;
+    }
+    .history-count {
+      font-size: 12px;
+      font-weight: normal;
+      color: var(--muted);
+      margin-left: 8px;
+    }
+    .history-index {
+      width: 24px;
+      height: 24px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: #888;
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+    .history-load-more {
+      padding: 16px;
+      text-align: center;
+      color: #888;
+      font-size: 13px;
+      border-top: 1px dashed #3c3c3c;
+      margin-top: 8px;
+    }
+    .history-pagination {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 12px;
+      border-top: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .history-page-info {
+      color: var(--muted);
+      font-size: 13px;
+      min-width: 50px;
+      text-align: center;
+    }
+    .history-pagination .small-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
     }
     .history-drawer-toolbar {
       padding: 12px 16px;
@@ -309,50 +396,149 @@
       white-space: pre-wrap;
       word-break: break-all;
     }
+    /* 升级弹窗样式 */
+    /* 升级弹窗样式 */
+    .upgrade-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.8);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .upgrade-dialog {
+      background: var(--bg-head);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+      width: 400px;
+      max-width: 90vw;
+      position: relative;
+    }
+    .upgrade-header {
+      text-align: center;
+      margin-bottom: 12px;
+    }
+    .upgrade-icon { font-size: 28px; }
+    .upgrade-header h2 { margin: 6px 0 0; font-size: 18px; color: var(--text); }
+    .upgrade-reason {
+      text-align: center;
+      color: #f48771;
+      margin-bottom: 12px;
+      font-size: 13px;
+    }
+    .upgrade-features {
+      margin-bottom: 16px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 6px;
+      padding: 10px 12px;
+    }
+    .feature-item {
+      padding: 4px 0;
+      color: var(--text);
+      font-size: 13px;
+    }
+    .upgrade-price-box {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .upgrade-price {
+      font-size: 28px;
+      font-weight: bold;
+      color: var(--green);
+    }
+    .upgrade-price-note {
+      color: #888;
+      margin-left: 6px;
+      font-size: 12px;
+    }
+    .upgrade-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    .btn-primary {
+      flex: 1;
+      background: var(--green);
+      border: none;
+      color: #fff;
+      padding: 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn-primary:hover { background: #45a049; }
+    .btn-secondary {
+      flex: 1;
+      background: transparent;
+      border: 1px solid #3c3c3c;
+      color: #d4d4d4;
+      padding: 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn-secondary:hover { background: #3c3c3c; }
+    .upgrade-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: transparent;
+      border: none;
+      color: #888;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px 8px;
+    }
+    .upgrade-close:hover { color: #d4d4d4; }
   </style>
 </head>
 <body>
-  <h1>JSON Side</h1>
+  <div class="header-row">
+    <h1>JSON Side</h1>
+    <button id="licenseBtn" class="license-btn">激活</button>
+  </div>
   <div class="toolbar">
     <button id="modeFormatBtn" class="mode-btn active">格式化</button>
     <button id="modeDiffBtn" class="mode-btn">Diff</button>
     <button id="modeConvertBtn" class="mode-btn">转换</button>
     <button id="modePathBtn" class="mode-btn">Path</button>
     <button id="modeCompactBtn" class="mode-btn">压缩</button>
-    <span class="divider"></span>
     <button id="historyBtn" class="mode-btn">历史</button>
-    <span class="divider"></span>
-    <select id="tzSelect">
-      <option value="12">UTC+12 奥克兰</option>
-      <option value="11">UTC+11 所罗门</option>
-      <option value="10">UTC+10 悉尼</option>
-      <option value="9">UTC+9 东京</option>
-      <option value="8" selected>UTC+8 北京</option>
-      <option value="7">UTC+7 曼谷</option>
-      <option value="6">UTC+6 达卡</option>
-      <option value="5">UTC+5 卡拉奇</option>
-      <option value="4">UTC+4 迪拜</option>
-      <option value="3">UTC+3 莫斯科</option>
-      <option value="2">UTC+2 开罗</option>
-      <option value="1">UTC+1 巴黎</option>
-      <option value="0">UTC+0 伦敦</option>
-      <option value="-1">UTC-1 亚速尔</option>
-      <option value="-2">UTC-2 中大西洋</option>
-      <option value="-3">UTC-3 圣保罗</option>
-      <option value="-4">UTC-4 智利</option>
-      <option value="-5">UTC-5 纽约</option>
-      <option value="-6">UTC-6 芝加哥</option>
-      <option value="-7">UTC-7 丹佛</option>
-      <option value="-8">UTC-8 洛杉矶</option>
-      <option value="-9">UTC-9 阿拉斯加</option>
-      <option value="-10">UTC-10 夏威夷</option>
+    <span class="divider" style="width:2px;background:#0e639c;margin:0 12px;"></span>
+    <select id="tzSelect" style="padding:5px 24px 5px 10px;font-size:12px;border-radius:4px;background:var(--bg-head);border:1px solid var(--border);color:var(--text);cursor:pointer;appearance:none;background-image:url('data:image/svg+xml;utf8,<svg fill=\"%23888\" height=\"12\" viewBox=\"0 0 24 24\" width=\"12\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M7 10l5 5 5-5z\"/></svg>');background-repeat:no-repeat;background-position:right 6px center;">
+      <option value="12" style="background:var(--bg-head);color:var(--text);">UTC+12 奥克兰</option>
+      <option value="11" style="background:var(--bg-head);color:var(--text);">UTC+11 所罗门</option>
+      <option value="10" style="background:var(--bg-head);color:var(--text);">UTC+10 悉尼</option>
+      <option value="9" style="background:var(--bg-head);color:var(--text);">UTC+9 东京</option>
+      <option value="8" selected style="background:var(--bg-head);color:var(--text);">UTC+8 北京</option>
+      <option value="7" style="background:var(--bg-head);color:var(--text);">UTC+7 曼谷</option>
+      <option value="6" style="background:var(--bg-head);color:var(--text);">UTC+6 达卡</option>
+      <option value="5" style="background:var(--bg-head);color:var(--text);">UTC+5 卡拉奇</option>
+      <option value="4" style="background:var(--bg-head);color:var(--text);">UTC+4 迪拜</option>
+      <option value="3" style="background:var(--bg-head);color:var(--text);">UTC+3 莫斯科</option>
+      <option value="2" style="background:var(--bg-head);color:var(--text);">UTC+2 开罗</option>
+      <option value="1" style="background:var(--bg-head);color:var(--text);">UTC+1 巴黎</option>
+      <option value="0" style="background:var(--bg-head);color:var(--text);">UTC+0 伦敦</option>
+      <option value="-1" style="background:var(--bg-head);color:var(--text);">UTC-1 亚速尔</option>
+      <option value="-2" style="background:var(--bg-head);color:var(--text);">UTC-2 中大西洋</option>
+      <option value="-3" style="background:var(--bg-head);color:var(--text);">UTC-3 圣保罗</option>
+      <option value="-4" style="background:var(--bg-head);color:var(--text);">UTC-4 智利</option>
+      <option value="-5" style="background:var(--bg-head);color:var(--text);">UTC-5 纽约</option>
+      <option value="-6" style="background:var(--bg-head);color:var(--text);">UTC-6 芝加哥</option>
+      <option value="-7" style="background:var(--bg-head);color:var(--text);">UTC-7 丹佛</option>
+      <option value="-8" style="background:var(--bg-head);color:var(--text);">UTC-8 洛杉矶</option>
+      <option value="-9" style="background:var(--bg-head);color:var(--text);">UTC-9 阿拉斯加</option>
+      <option value="-10" style="background:var(--bg-head);color:var(--text);">UTC-10 夏威夷</option>
+      <option value="-11" style="background:var(--bg-head);color:var(--text);">UTC-11 萨摩亚</option>
+      <option value="-12" style="background:var(--bg-head);color:var(--text);">UTC-12 贝克岛</option>
     </select>
-    <button id="formatBtn" class="primary">格式化</button>
-    <button id="formatTsBtn">时间格式化</button>
-    <button id="expandBtn">全部展开</button>
-    <button id="collapseBtn">全部收起</button>
-    <button id="copyBtn">复制结果</button>
-    <button id="clearBtn">清空</button>
+    <button id="formatBtn" class="small-btn primary-btn">格式化</button>
+    <button id="formatTsBtn" class="small-btn">时间格式化</button>
+    <button id="expandBtn" class="small-btn">全部展开</button>
+    <button id="collapseBtn" class="small-btn">全部收起</button>
+    <button id="copyBtn" class="small-btn">复制结果</button>
+    <button id="clearBtn" class="small-btn">清空</button>
   </div>
   <!-- 格式化模式 -->
   <div id="formatMode" class="main">
@@ -454,16 +640,62 @@
   <!-- 历史记录侧边栏 -->
   <div id="historyPanel" class="history-drawer">
     <div class="history-drawer-header">
-      <span>历史记录</span>
+      <span>历史记录 <span id="historyLimitTip" class="history-limit-tip">(免费版最多10条)</span> <span id="historyCount" class="history-count"></span></span>
       <button id="closeHistoryBtn" class="small-btn">关闭</button>
     </div>
     <div class="history-drawer-toolbar">
       <button id="clearAllHistoryBtn" class="small-btn">清空全部</button>
     </div>
     <div class="history-drawer-list" id="historyList"></div>
+    <div id="historyPagination" class="history-pagination" style="display:none;">
+      <button id="historyPrevBtn" class="small-btn">上一页</button>
+      <span id="historyPageInfo" class="history-page-info">1/1</span>
+      <button id="historyNextBtn" class="small-btn">下一页</button>
+    </div>
   </div>
   <div id="historyOverlay" class="history-overlay"></div>
   <div class="toast" id="toast">已复制到剪贴板</div>
+
+  <!-- Pro 弹窗（升级+激活合并） -->
+  <div id="proOverlay" class="upgrade-overlay" style="display:none;">
+    <div class="upgrade-dialog" style="max-width:400px;padding:28px;">
+      <button id="closeProBtn" class="upgrade-close">×</button>
+      <div class="upgrade-header">
+        <span class="upgrade-icon">⭐</span>
+        <h2>Diff Pro</h2>
+      </div>
+
+      <!-- 未激活状态 -->
+      <div id="proUnactivated">
+        <p id="proReason" class="upgrade-reason"></p>
+        <div class="upgrade-features" style="text-align:left;">
+          <div class="feature-item">✓ 无限 Diff 对比</div>
+          <div class="feature-item">✓ 单次最大 2MB</div>
+          <div class="feature-item">✓ 历史记录 100 条</div>
+        </div>
+        <div class="upgrade-price-box">
+          <span class="upgrade-price">$9</span>
+          <span class="upgrade-price-note">终身使用</span>
+        </div>
+        <input type="text" id="licenseInput" placeholder="JSIDE-XXXX-XXXX-XXXX" maxlength="20"
+          style="width:100%;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:15px;font-family:Consolas,monospace;text-align:center;letter-spacing:1px;margin-bottom:12px;box-sizing:border-box;">
+        <div style="display:flex;gap:10px;">
+          <button id="activateBtn" style="flex:1;padding:12px;font-size:15px;background:linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);border:none;border-radius:6px;color:#fff;cursor:pointer;font-weight:500;">激活</button>
+          <button id="buyNowBtn" style="flex:1;padding:12px;font-size:15px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;">购买</button>
+        </div>
+        <div id="licenseResult" style="display:none;margin-top:12px;padding:10px;border-radius:6px;font-size:13px;text-align:center;"></div>
+      </div>
+
+      <!-- 已激活状态 -->
+      <div id="proActivated" style="display:none;padding:20px;background:rgba(76,175,50,0.1);border:1px solid #4caf50;border-radius:8px;margin-top:4px;">
+        <div style="color:#4caf50;font-size:18px;margin-bottom:10px;text-align:center;">✓ 已激活</div>
+        <div style="font-size:13px;color:#888;text-align:center;">
+          激活码: <span id="displayKey" style="color:var(--text);font-family:Consolas,monospace;"></span>
+        </div>
+      </div>
+      <button id="closeProBtn2" style="display:none;width:100%;margin-top:16px;padding:12px;background:var(--accent);border:none;border-radius:6px;color:#fff;font-size:14px;cursor:pointer;">关闭</button>
+    </div>
+  </div>
 
   <script src="popup.js"></script>
 </body>
