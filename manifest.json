@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "JSON Formatter",
+  "version": "1.0.0",
+  "description": "选中网页上的 JSON 文本，右键自动在新标签页打开格式化显示",
+  "permissions": [
+    "contextMenus",
+    "storage"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "JSON Formatter"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ]
+}
