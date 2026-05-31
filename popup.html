@@ -315,6 +315,8 @@
     <button id="modeFormatBtn" class="mode-btn active">格式化</button>
     <button id="modeDiffBtn" class="mode-btn">Diff</button>
     <button id="modeConvertBtn" class="mode-btn">转换</button>
+    <button id="modePathBtn" class="mode-btn">Path</button>
+    <button id="modeCompactBtn" class="mode-btn">压缩</button>
     <span class="divider"></span>
     <button id="historyBtn" class="mode-btn">历史</button>
     <span class="divider"></span>
@@ -401,6 +403,46 @@
         </div>
         <div class="convert-result" id="convertResult"></div>
       </div>
+    </div>
+  </div>
+  <!-- JSON Path 模式 -->
+  <div id="pathMode" class="main" style="display: none;">
+    <div class="panel">
+      <div class="panel-label diff-toolbar">
+        <span>JSON 输入</span>
+        <button id="clearPathBtn" class="small-btn">清空</button>
+      </div>
+      <textarea id="pathInput" placeholder='粘贴 JSON，如：{"store": {"book": [{"title": "A"}]}}'></textarea>
+    </div>
+    <div class="panel">
+      <div class="panel-label diff-toolbar">
+        <span>JSON Path 查询</span>
+        <button id="queryPathBtn" class="small-btn primary-btn">查询</button>
+      </div>
+      <input id="pathExpr" type="text" placeholder='输入路径，如：$.store.book[0].title 或 $.store..title' style="margin-bottom: 8px; width: 100%;">
+      <div class="output" id="pathResult" style="flex: 1;"></div>
+    </div>
+  </div>
+  <!-- 压缩/转义模式 -->
+  <div id="compactMode" class="main" style="display: none;">
+    <div class="panel">
+      <div class="panel-label diff-toolbar">
+        <span>JSON 输入</span>
+        <button id="clearCompactBtn" class="small-btn">清空</button>
+      </div>
+      <textarea id="compactInput" placeholder='粘贴 JSON 或转义字符串'></textarea>
+    </div>
+    <div class="panel">
+      <div class="panel-label diff-toolbar">
+        <span>操作</span>
+      </div>
+      <div style="display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
+        <button id="compactBtn" class="small-btn primary-btn">压缩</button>
+        <button id="escapeBtn" class="small-btn">转义</button>
+        <button id="unescapeBtn" class="small-btn">反转义</button>
+        <button id="copyCompactBtn" class="small-btn">复制结果</button>
+      </div>
+      <textarea id="compactOutput" readonly style="flex: 1;"></textarea>
     </div>
   </div>
   <!-- 历史记录侧边栏 -->

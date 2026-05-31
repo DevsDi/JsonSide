@@ -290,7 +290,11 @@ init();
 // ===================== 模式切换 =====================
 
 const modeConvertBtn = document.getElementById('modeConvertBtn');
+const modePathBtn = document.getElementById('modePathBtn');
+const modeCompactBtn = document.getElementById('modeCompactBtn');
 const convertMode = document.getElementById('convertMode');
+const pathMode = document.getElementById('pathMode');
+const compactMode = document.getElementById('compactMode');
 const convertInput = document.getElementById('convertInput');
 const convertResult = document.getElementById('convertResult');
 const clearConvertBtn = document.getElementById('clearConvertBtn');
@@ -298,58 +302,56 @@ const copyConvertBtn = document.getElementById('copyConvertBtn');
 
 let currentConvertType = 'typescript';
 
+function hideFormatButtons(hide) {
+  document.getElementById('tzSelect').style.display = hide ? 'none' : '';
+  document.getElementById('formatBtn').style.display = hide ? 'none' : '';
+  document.getElementById('formatTsBtn').style.display = hide ? 'none' : '';
+  document.getElementById('expandBtn').style.display = hide ? 'none' : '';
+  document.getElementById('collapseBtn').style.display = hide ? 'none' : '';
+  document.getElementById('copyBtn').style.display = hide ? 'none' : '';
+  document.getElementById('clearBtn').style.display = hide ? 'none' : '';
+}
+
 function switchMode(mode) {
-  if (mode === 'format') {
-    modeFormatBtn.classList.add('active');
-    modeDiffBtn.classList.remove('active');
-    modeConvertBtn.classList.remove('active');
-    formatMode.style.display = 'grid';
-    diffMode.style.display = 'none';
-    convertMode.style.display = 'none';
-    // 显示格式化模式的按钮
-    document.getElementById('tzSelect').style.display = '';
-    document.getElementById('formatBtn').style.display = '';
-    document.getElementById('formatTsBtn').style.display = '';
-    document.getElementById('expandBtn').style.display = '';
-    document.getElementById('collapseBtn').style.display = '';
-    document.getElementById('copyBtn').style.display = '';
-    document.getElementById('clearBtn').style.display = '';
-  } else if (mode === 'diff') {
-    modeFormatBtn.classList.remove('active');
-    modeDiffBtn.classList.add('active');
-    modeConvertBtn.classList.remove('active');
-    formatMode.style.display = 'none';
-    diffMode.style.display = 'grid';
-    convertMode.style.display = 'none';
-    // 隐藏格式化模式的按钮
-    document.getElementById('tzSelect').style.display = 'none';
-    document.getElementById('formatBtn').style.display = 'none';
-    document.getElementById('formatTsBtn').style.display = 'none';
-    document.getElementById('expandBtn').style.display = 'none';
-    document.getElementById('collapseBtn').style.display = 'none';
-    document.getElementById('copyBtn').style.display = 'none';
-    document.getElementById('clearBtn').style.display = 'none';
-  } else if (mode === 'convert') {
-    modeFormatBtn.classList.remove('active');
-    modeDiffBtn.classList.remove('active');
-    modeConvertBtn.classList.add('active');
-    formatMode.style.display = 'none';
-    diffMode.style.display = 'none';
-    convertMode.style.display = 'grid';
-    // 隐藏格式化模式的按钮
-    document.getElementById('tzSelect').style.display = 'none';
-    document.getElementById('formatBtn').style.display = 'none';
-    document.getElementById('formatTsBtn').style.display = 'none';
-    document.getElementById('expandBtn').style.display = 'none';
-    document.getElementById('collapseBtn').style.display = 'none';
-    document.getElementById('copyBtn').style.display = 'none';
-    document.getElementById('clearBtn').style.display = 'none';
+  // 重置所有按钮
+  [modeFormatBtn, modeDiffBtn, modeConvertBtn, modePathBtn, modeCompactBtn].forEach(btn => btn.classList.remove('active'));
+  // 隐藏所有模式
+  [formatMode, diffMode, convertMode, pathMode, compactMode].forEach(m => m.style.display = 'none');
+
+  switch (mode) {
+    case 'format':
+      modeFormatBtn.classList.add('active');
+      formatMode.style.display = 'grid';
+      hideFormatButtons(false);
+      break;
+    case 'diff':
+      modeDiffBtn.classList.add('active');
+      diffMode.style.display = 'grid';
+      hideFormatButtons(true);
+      break;
+    case 'convert':
+      modeConvertBtn.classList.add('active');
+      convertMode.style.display = 'grid';
+      hideFormatButtons(true);
+      break;
+    case 'path':
+      modePathBtn.classList.add('active');
+      pathMode.style.display = 'grid';
+      hideFormatButtons(true);
+      break;
+    case 'compact':
+      modeCompactBtn.classList.add('active');
+      compactMode.style.display = 'grid';
+      hideFormatButtons(true);
+      break;
   }
 }
 
 modeFormatBtn.onclick = () => switchMode('format');
 modeDiffBtn.onclick = () => switchMode('diff');
 modeConvertBtn.onclick = () => switchMode('convert');
+modePathBtn.onclick = () => switchMode('path');
+modeCompactBtn.onclick = () => switchMode('compact');
 
 // ===================== 历史记录面板 =====================
 
@@ -1197,6 +1199,359 @@ clearConvertBtn.onclick = () => {
 copyConvertBtn.onclick = async () => {
   const text = convertResult.textContent;
   if (text) {
+    await navigator.clipboard.writeText(text);
+    showToast();
+  }
+};
+
+// ===================== JSON Path 功能 =====================
+
+const pathInput = document.getElementById('pathInput');
+const pathExpr = document.getElementById('pathExpr');
+const pathResult = document.getElementById('pathResult');
+const clearPathBtn = document.getElementById('clearPathBtn');
+const queryPathBtn = document.getElementById('queryPathBtn');
+
+let pathData = null;
+
+/**
+ * 简易 JSON Path 解析器
+ * 支持语法：
+ * - $ : 根节点
+ * - .key : 对象属性
+ * - [n] : 数组索引
+ * - .. : 递归下降
+ * - [*] : 所有数组元素
+ * - .* : 所有对象属性
+ * - [a,b] : 多个索引
+ */
+function jsonPath(data, path) {
+  if (!path || path === '$') return [data];
+
+  // 解析路径
+  const tokens = tokenize(path);
+
+  let results = [data];
+
+  for (const token of tokens) {
+    const newResults = [];
+
+    for (const result of results) {
+      if (result === null || result === undefined) continue;
+
+      if (token.type === 'key') {
+        // 对象属性
+        if (typeof result === 'object' && !Array.isArray(result) && token.value in result) {
+          newResults.push(result[token.value]);
+        }
+      } else if (token.type === 'index') {
+        // 数组索引
+        if (Array.isArray(result)) {
+          if (token.value === '*') {
+            // [*] 所有元素
+            newResults.push(...result);
+          } else if (typeof token.value === 'number') {
+            if (token.value >= 0 && token.value < result.length) {
+              newResults.push(result[token.value]);
+            } else if (token.value < 0 && Math.abs(token.value) <= result.length) {
+              // 负索引
+              newResults.push(result[result.length + token.value]);
+            }
+          } else if (Array.isArray(token.value)) {
+            // 多个索引 [a,b,c]
+            for (const idx of token.value) {
+              if (idx >= 0 && idx < result.length) {
+                newResults.push(result[idx]);
+              }
+            }
+          }
+        }
+      } else if (token.type === 'all') {
+        // .* 或 [*] 所有属性/元素
+        if (Array.isArray(result)) {
+          newResults.push(...result);
+        } else if (typeof result === 'object') {
+          newResults.push(...Object.values(result));
+        }
+      } else if (token.type === 'recursive') {
+        // .. 递归下降
+        const key = token.value;
+        if (key === '*') {
+          // ..* 获取所有值
+          collectAll(result, newResults);
+        } else {
+          // ..key 查找所有匹配的 key
+          findRecursive(result, key, newResults);
+        }
+      }
+    }
+
+    results = newResults;
+  }
+
+  return results;
+}
+
+/**
+ * 解析路径为 token 数组
+ */
+function tokenize(path) {
+  const tokens = [];
+  let i = 0;
+
+  // 跳过 $
+  if (path[0] === '$') i = 1;
+
+  while (i < path.length) {
+    if (path[i] === '.') {
+      if (path[i + 1] === '.') {
+        // 递归下降 ..
+        i += 2;
+        let key = '';
+        while (i < path.length && path[i] !== '.' && path[i] !== '[') {
+          key += path[i];
+          i++;
+        }
+        tokens.push({ type: 'recursive', value: key || '*' });
+      } else {
+        // 属性访问
+        i++;
+        if (path[i] === '*') {
+          tokens.push({ type: 'all', value: '*' });
+          i++;
+        } else {
+          let key = '';
+          while (i < path.length && path[i] !== '.' && path[i] !== '[') {
+            key += path[i];
+            i++;
+          }
+          if (key) tokens.push({ type: 'key', value: key });
+        }
+      }
+    } else if (path[i] === '[') {
+      i++;
+      let content = '';
+      while (i < path.length && path[i] !== ']') {
+        content += path[i];
+        i++;
+      }
+      i++; // 跳过 ]
+
+      if (content === '*') {
+        tokens.push({ type: 'all', value: '*' });
+      } else if (content.includes(',')) {
+        // 多个索引
+        const indices = content.split(',').map(s => parseInt(s.trim()));
+        tokens.push({ type: 'index', value: indices });
+      } else {
+        const idx = parseInt(content);
+        tokens.push({ type: 'index', value: isNaN(idx) ? content : idx });
+      }
+    } else {
+      i++;
+    }
+  }
+
+  return tokens;
+}
+
+/**
+ * 递归查找所有匹配的 key
+ */
+function findRecursive(obj, key, results) {
+  if (obj === null || obj === undefined) return;
+
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      findRecursive(item, key, results);
+    }
+  } else if (typeof obj === 'object') {
+    for (const [k, v] of Object.entries(obj)) {
+      if (k === key) {
+        results.push(v);
+      }
+      findRecursive(v, key, results);
+    }
+  }
+}
+
+/**
+ * 收集所有值
+ */
+function collectAll(obj, results) {
+  if (obj === null || obj === undefined) return;
+
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      results.push(item);
+      collectAll(item, results);
+    }
+  } else if (typeof obj === 'object') {
+    for (const v of Object.values(obj)) {
+      results.push(v);
+      collectAll(v, results);
+    }
+  }
+}
+
+/**
+ * 执行 JSON Path 查询
+ */
+function queryPath() {
+  const text = pathInput.value.trim();
+  const expr = pathExpr.value.trim();
+
+  if (!text) {
+    pathResult.innerHTML = '<div class="error">请输入 JSON</div>';
+    return;
+  }
+
+  if (!expr) {
+    pathResult.innerHTML = '<div class="error">请输入 JSON Path 表达式</div>';
+    return;
+  }
+
+  try {
+    pathData = JSON.parse(text);
+  } catch (e) {
+    pathResult.innerHTML = `<div class="error">JSON 解析失败: ${e.message}</div>`;
+    return;
+  }
+
+  try {
+    const results = jsonPath(pathData, expr);
+
+    if (results.length === 0) {
+      pathResult.innerHTML = '<div class="error">未找到匹配结果</div>';
+      return;
+    }
+
+    // 渲染结果
+    let html = `<div style="color: #6a9955; margin-bottom: 8px;">找到 ${results.length} 个结果:</div>`;
+    results.forEach((r, i) => {
+      html += `<div style="margin-bottom: 12px; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 4px;">`;
+      html += `<div style="color: #888; font-size: 11px; margin-bottom: 4px;">[${i}]</div>`;
+      html += render(r);
+      html += `</div>`;
+    });
+    pathResult.innerHTML = html;
+  } catch (e) {
+    pathResult.innerHTML = `<div class="error">查询失败: ${e.message}</div>`;
+  }
+}
+
+// Path 输入框事件
+pathInput.addEventListener('input', () => {
+  clearTimeout(pathInput._timer);
+  pathInput._timer = setTimeout(queryPath, 500);
+});
+
+pathExpr.addEventListener('input', () => {
+  clearTimeout(pathExpr._timer);
+  pathExpr._timer = setTimeout(queryPath, 300);
+});
+
+pathExpr.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') queryPath();
+});
+
+queryPathBtn.onclick = queryPath;
+
+clearPathBtn.onclick = () => {
+  pathInput.value = '';
+  pathExpr.value = '';
+  pathResult.innerHTML = '';
+  pathData = null;
+};
+
+// ===================== JSON 压缩/转义功能 =====================
+
+const compactInput = document.getElementById('compactInput');
+const compactOutput = document.getElementById('compactOutput');
+const clearCompactBtn = document.getElementById('clearCompactBtn');
+const compactBtn = document.getElementById('compactBtn');
+const escapeBtn = document.getElementById('escapeBtn');
+const unescapeBtn = document.getElementById('unescapeBtn');
+const copyCompactBtn = document.getElementById('copyCompactBtn');
+
+/**
+ * JSON 压缩（去除空格换行）
+ */
+function compactJson() {
+  const text = compactInput.value.trim();
+  if (!text) {
+    compactOutput.value = '';
+    return;
+  }
+
+  try {
+    const obj = JSON.parse(text);
+    compactOutput.value = JSON.stringify(obj);
+  } catch (e) {
+    // 可能已经是压缩格式，尝试直接输出
+    compactOutput.value = `解析失败: ${e.message}`;
+  }
+}
+
+/**
+ * JSON 转义（转为字符串）
+ */
+function escapeJson() {
+  const text = compactInput.value.trim();
+  if (!text) {
+    compactOutput.value = '';
+    return;
+  }
+
+  try {
+    // 先验证是否为有效 JSON
+    const obj = JSON.parse(text);
+    // 转义：将 JSON 字符串化后再转义引号
+    const jsonStr = JSON.stringify(obj);
+    // 转义特殊字符
+    compactOutput.value = jsonStr
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"');
+  } catch (e) {
+    compactOutput.value = `解析失败: ${e.message}`;
+  }
+}
+
+/**
+ * JSON 反转义（从字符串还原）
+ */
+function unescapeJson() {
+  const text = compactInput.value.trim();
+  if (!text) {
+    compactOutput.value = '';
+    return;
+  }
+
+  try {
+    // 反转义特殊字符
+    let unescaped = text
+      .replace(/\\"/g, '"')
+      .replace(/\\\\/g, '\\');
+    // 尝试解析并格式化
+    const obj = JSON.parse(unescaped);
+    compactOutput.value = JSON.stringify(obj, null, 2);
+  } catch (e) {
+    compactOutput.value = `反转义失败: ${e.message}`;
+  }
+}
+
+compactBtn.onclick = compactJson;
+escapeBtn.onclick = escapeJson;
+unescapeBtn.onclick = unescapeJson;
+
+clearCompactBtn.onclick = () => {
+  compactInput.value = '';
+  compactOutput.value = '';
+};
+
+copyCompactBtn.onclick = async () => {
+  const text = compactOutput.value;
+  if (text && !text.startsWith('解析失败') && !text.startsWith('反转义失败')) {
     await navigator.clipboard.writeText(text);
     showToast();
   }
