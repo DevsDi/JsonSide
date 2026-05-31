@@ -1,27 +1,39 @@
 /**
- * JSON Formatter - Popup Script
+ * JSON Side - Popup Script
  */
 
-const input = document.getElementById('input');
-const output = document.getElementById('output');
-const tzSelect = document.getElementById('tzSelect');
-const formatBtn = document.getElementById('formatBtn');
-const formatTsBtn = document.getElementById('formatTsBtn');
-const expandBtn = document.getElementById('expandBtn');
-const collapseBtn = document.getElementById('collapseBtn');
-const copyBtn = document.getElementById('copyBtn');
-const clearBtn = document.getElementById('clearBtn');
-const toast = document.getElementById('toast');
+// Z5: 安全获取 DOM 元素，检查 null
+function safeGetElement(id) {
+  const el = document.getElementById(id);
+  // A4: 不使用 console.warn，避免日志
+  return el;
+}
+
+const input = safeGetElement('input');
+const output = safeGetElement('output');
+const tzSelect = safeGetElement('tzSelect');
+const formatBtn = safeGetElement('formatBtn');
+const formatTsBtn = safeGetElement('formatTsBtn');
+const expandBtn = safeGetElement('expandBtn');
+const collapseBtn = safeGetElement('collapseBtn');
+const copyBtn = safeGetElement('copyBtn');
+const clearBtn = safeGetElement('clearBtn');
+const toast = safeGetElement('toast');
 
 // Diff 模式元素
-const modeFormatBtn = document.getElementById('modeFormatBtn');
-const modeDiffBtn = document.getElementById('modeDiffBtn');
-const formatMode = document.getElementById('formatMode');
-const diffMode = document.getElementById('diffMode');
-const diffInputA = document.getElementById('diffInputA');
-const diffInputB = document.getElementById('diffInputB');
-const swapBtn = document.getElementById('swapBtn');
-const clearDiffBtn = document.getElementById('clearDiffBtn');
+const modeFormatBtn = safeGetElement('modeFormatBtn');
+const modeDiffBtn = safeGetElement('modeDiffBtn');
+const formatMode = safeGetElement('formatMode');
+const diffMode = safeGetElement('diffMode');
+const diffInputA = safeGetElement('diffInputA');
+const diffInputB = safeGetElement('diffInputB');
+const swapBtn = safeGetElement('swapBtn');
+const clearDiffBtn = safeGetElement('clearDiffBtn');
+
+// Z5: 关键元素检查，如果缺失则停止执行
+if (!input || !output) {
+  throw new Error('Required DOM elements not found');
+}
 
 let formattedJson = '';
 let idCounter = 0;
@@ -38,6 +50,17 @@ const MAX_HISTORY = 50;
 async function saveToHistory(jsonText, source = 'manual') {
   if (!jsonText || jsonText.trim().length < 2) return;
 
+  // V4: 限制单条历史记录大小 (100KB)
+  const MAX_HISTORY_ITEM_SIZE = 100 * 1024;
+  if (jsonText.length > MAX_HISTORY_ITEM_SIZE) {
+    // X5: 移除调试日志
+    return;
+  }
+
+  // V3: 验证 source 值，防止注入
+  const validSources = ['manual', 'right-click'];
+  const safeSource = validSources.includes(source) ? source : 'manual';
+
   try {
     const result = await chrome.storage.local.get('history');
     const history = result.history || [];
@@ -52,7 +75,7 @@ async function saveToHistory(jsonText, source = 'manual') {
     // 添加新记录
     history.unshift({
       json: jsonText,
-      source: source,
+      source: safeSource,
       time: new Date().toISOString(),
       preview: jsonText.substring(0, 60).replace(/\n/g, ' ')
     });
@@ -61,7 +84,7 @@ async function saveToHistory(jsonText, source = 'manual') {
     const limited = history.slice(0, MAX_HISTORY);
     await chrome.storage.local.set({ history: limited });
   } catch (e) {
-    console.error('保存历史记录失败:', e);
+    // 静默处理错误
   }
 }
 
@@ -101,10 +124,20 @@ async function init() {
   try {
     const saved = await chrome.storage.local.get(['tzOffset', 'jsonText']);
     if (saved.tzOffset !== undefined) {
-      tzSelect.value = saved.tzOffset;
+      // Y1: 验证时区值范围（-12 到 +12）
+      const tzValue = Number(saved.tzOffset);
+      if (!isNaN(tzValue) && tzValue >= -12 && tzValue <= 12) {
+        tzSelect.value = tzValue;
+      }
     }
     // 如果有选中的 JSON，自动填入并格式化
     if (saved.jsonText) {
+      // Y2: 验证 jsonText 大小
+      if (saved.jsonText.length > MAX_INPUT_SIZE) {
+        output.innerHTML = `<div class="error">输入过大，请限制在 1MB 以内</div>`;
+        chrome.storage.local.remove('jsonText');
+        return;
+      }
       input.value = saved.jsonText;
       format();
       // 清除存储，避免下次打开时重复加载
@@ -126,18 +159,49 @@ function formatTs(ts, tz) {
   return `${y}-${m}-${d} ${h}:${min}:${sec}`;
 }
 
-// HTML 转义
+// HTML 转义（增强版，防止 XSS）
 function esc(s) {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/\//g, '&#x2F;');
 }
 
-// 渲染 JSON
-function render(data) {
+// 输入大小限制（1MB）
+const MAX_INPUT_SIZE = 1024 * 1024;
+
+// 嵌套深度限制
+const MAX_DEPTH = 50;
+
+// ID 计数器最大值（防止溢出）
+const MAX_ID_COUNTER = 10000000;
+
+// 时间戳合理范围（2000-01-01 到 2100-01-01）
+const TS_MIN_SEC = 946684800;    // 2000-01-01 00:00:00 UTC (秒)
+const TS_MAX_SEC = 4102444800;   // 2100-01-01 00:00:00 UTC (秒)
+
+// 渲染 JSON（带深度限制）
+function render(data, depth = 0) {
+  // 深度限制检查
+  if (depth > MAX_DEPTH) {
+    return '<span class="error" style="color: #f48771;">嵌套层级过深，已截断</span>';
+  }
+
   if (data === null) return '<span class="v-null">null</span>';
   if (typeof data === 'string') return `<span class="v-string">"${esc(data)}"</span>`;
   if (typeof data === 'number') {
-    const isTs = (data > 1000000000 && data < 100000000000) ||
-                 (data > 1000000000000 && data < 10000000000000);
+    // V7: 更严格的时间戳判断（2000-2100年范围）
+    let isTs = false;
+    if (data > TS_MIN_SEC && data < TS_MAX_SEC) {
+      // 秒级时间戳
+      isTs = true;
+    } else if (data > TS_MIN_SEC * 1000 && data < TS_MAX_SEC * 1000) {
+      // 毫秒级时间戳
+      isTs = true;
+    }
     if (isTs) {
       return `<span class="v-number v-ts" data-ts="${data}">${data}</span>`;
     }
@@ -147,9 +211,13 @@ function render(data) {
 
   if (Array.isArray(data)) {
     if (data.length === 0) return '<span class="v-bracket">[]</span>';
+    // V6: idCounter 溢出保护
+    if (idCounter > MAX_ID_COUNTER) {
+      idCounter = 0;
+    }
     const id = 'n' + (idCounter++);
     const items = data.map((v, i) => {
-      const val = render(v);
+      const val = render(v, depth + 1);
       const comma = i < data.length - 1 ? '<span class="v-comma">,</span>' : '';
       return `<div class="line">${val}${comma}</div>`;
     }).join('');
@@ -159,9 +227,13 @@ function render(data) {
   if (typeof data === 'object') {
     const keys = Object.keys(data);
     if (keys.length === 0) return '<span class="v-bracket">{}</span>';
+    // V6: idCounter 溢出保护
+    if (idCounter > MAX_ID_COUNTER) {
+      idCounter = 0;
+    }
     const id = 'n' + (idCounter++);
     const items = keys.map((k, i) => {
-      const val = render(data[k]);
+      const val = render(data[k], depth + 1);
       const comma = i < keys.length - 1 ? '<span class="v-comma">,</span>' : '';
       return `<div class="line"><span class="v-key">"${esc(k)}"</span>: ${val}${comma}</div>`;
     }).join('');
@@ -176,9 +248,15 @@ function bindEvents() {
   // 折叠
   output.querySelectorAll('.toggle').forEach(el => {
     el.onclick = () => {
-      const block = document.getElementById(el.dataset.id);
-      const hide = block.classList.toggle('hide');
-      el.textContent = hide ? '▶' : '▼';
+      // W7: 验证 dataset.id 格式，防止伪造
+      const id = el.dataset.id;
+      if (id && /^[a-zA-Z][a-zA-Z0-9_-]*$/.test(id)) {
+        const block = document.getElementById(id);
+        if (block) {
+          const hide = block.classList.toggle('hide');
+          el.textContent = hide ? '▶' : '▼';
+        }
+      }
     };
   });
 
@@ -186,17 +264,27 @@ function bindEvents() {
   output.querySelectorAll('.v-ts').forEach(el => {
     el.onclick = () => {
       const ts = el.dataset.ts;
-      const tz = Number(tzSelect.value);
-      const isFmt = el.classList.toggle('formatted');
-      el.textContent = isFmt ? formatTs(Number(ts), tz) : ts;
+      // W7: 验证时间戳格式
+      if (ts && /^\d+$/.test(ts)) {
+        const tz = Number(tzSelect.value);
+        const isFmt = el.classList.toggle('formatted');
+        el.textContent = isFmt ? formatTs(Number(ts), tz) : ts;
+      }
     };
   });
 }
 
-// 格式化
+// 格式化（带输入大小限制）
 function format() {
   const text = input.value.trim();
   if (!text) return;
+
+  // 输入大小检查
+  if (text.length > MAX_INPUT_SIZE) {
+    output.innerHTML = `<div class="error">输入过大 (${(text.length / 1024 / 1024).toFixed(2)}MB)，请限制在 1MB 以内</div>`;
+    formattedJson = '';
+    return;
+  }
 
   idCounter = 0;
 
@@ -208,7 +296,7 @@ function format() {
     // 保存到历史记录
     saveToHistory(text, 'manual');
   } catch (e) {
-    output.innerHTML = `<div class="error">解析失败: ${e.message}</div>`;
+    output.innerHTML = `<div class="error">解析失败: ${esc(e.message)}</div>`;
     formattedJson = '';
   }
 }
@@ -245,11 +333,16 @@ function collapseAll() {
   output.querySelectorAll('.toggle').forEach(t => t.textContent = '▶');
 }
 
-// 复制
+// 复制（带错误处理）
 async function copy() {
   if (!formattedJson) return;
-  await navigator.clipboard.writeText(formattedJson);
-  showToast();
+  try {
+    await navigator.clipboard.writeText(formattedJson);
+    showToast();
+  } catch (e) {
+    // Z4: 剪贴板写入失败处理
+    // 静默处理错误，或可显示提示
+  }
 }
 
 // 清空
@@ -274,7 +367,11 @@ copyBtn.onclick = copy;
 clearBtn.onclick = clear;
 
 tzSelect.onchange = () => {
-  chrome.storage.local.set({ tzOffset: tzSelect.value });
+  // Y1: 验证时区值范围后再存储
+  const tzValue = Number(tzSelect.value);
+  if (!isNaN(tzValue) && tzValue >= -12 && tzValue <= 12) {
+    chrome.storage.local.set({ tzOffset: tzValue });
+  }
 };
 
 // 回车格式化
@@ -410,26 +507,35 @@ async function renderHistoryList() {
     return;
   }
 
-  historyList.innerHTML = history.map((item, index) => `
+  // X2: 验证 source 值，防止恶意类名
+  const validSources = ['manual', 'right-click'];
+
+  historyList.innerHTML = history.map((item, index) => {
+    // X2: 验证 source，防止注入恶意类名
+    const safeSource = validSources.includes(item.source) ? item.source : 'manual';
+    return `
     <div class="history-item" data-index="${index}">
-      <span class="history-icon ${item.source}">${item.source === 'right-click' ? '🔗' : '📋'}</span>
+      <span class="history-icon ${safeSource}">${safeSource === 'right-click' ? '🔗' : '📋'}</span>
       <div class="history-content">
         <div class="history-preview">${escDiff(item.preview)}...</div>
         <div class="history-meta">
           <span class="history-time">${formatFullTime(item.time, tzOffset)}</span>
-          <span class="history-source">${item.source === 'right-click' ? '右键' : '手动'}</span>
+          <span class="history-source">${safeSource === 'right-click' ? '右键' : '手动'}</span>
         </div>
       </div>
       <button class="history-delete" data-index="${index}">删除</button>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 
   // 绑定点击事件
   historyList.querySelectorAll('.history-item').forEach(el => {
     el.onclick = (e) => {
       if (e.target.classList.contains('history-delete')) return;
-      const index = parseInt(el.dataset.index);
-      loadHistoryItem(index);
+      // X3: 验证索引范围
+      const index = parseInt(el.dataset.index, 10);
+      if (!isNaN(index) && index >= 0 && index < history.length) {
+        loadHistoryItem(index);
+      }
     };
   });
 
@@ -437,9 +543,12 @@ async function renderHistoryList() {
   historyList.querySelectorAll('.history-delete').forEach(el => {
     el.onclick = async (e) => {
       e.stopPropagation();
-      const index = parseInt(el.dataset.index);
-      await deleteHistoryItem(index);
-      renderHistoryList();
+      // X3: 验证索引范围
+      const index = parseInt(el.dataset.index, 10);
+      if (!isNaN(index) && index >= 0) {
+        await deleteHistoryItem(index);
+        renderHistoryList();
+      }
     };
   });
 }
@@ -495,17 +604,26 @@ let diffRawA = '';  // 原始 JSON 字符串
 let diffRawB = '';
 
 /**
- * HTML 转义
+ * HTML 转义（增强版，用于 Diff 模式）
  */
 function escDiff(s) {
-  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/\//g, '&#x2F;');
 }
 
 /**
- * 深度比较收集差异路径
+ * 深度比较收集差异路径（带深度限制）
  */
-function collectDiffs(a, b, path = '') {
+function collectDiffs(a, b, path = '', depth = 0) {
   const result = { add: new Set(), del: new Set(), mod: new Set() };
+
+  // W1: 深度限制
+  if (depth > MAX_DEPTH) return result;
 
   // 都为空
   if (a === null && b === null) return result;
@@ -543,7 +661,7 @@ function collectDiffs(a, b, path = '') {
     const maxLen = Math.max(a.length, b.length);
     for (let i = 0; i < maxLen; i++) {
       const p = path ? `${path}.${i}` : String(i);
-      const sub = collectDiffs(a[i], b[i], p);
+      const sub = collectDiffs(a[i], b[i], p, depth + 1);
       result.add = new Set([...result.add, ...sub.add]);
       result.del = new Set([...result.del, ...sub.del]);
       result.mod = new Set([...result.mod, ...sub.mod]);
@@ -561,7 +679,7 @@ function collectDiffs(a, b, path = '') {
       result.del.add(p);
     } else {
       // 递归比较并合并结果
-      const sub = collectDiffs(a[k], b[k], p);
+      const sub = collectDiffs(a[k], b[k], p, depth + 1);
       result.add = new Set([...result.add, ...sub.add]);
       result.del = new Set([...result.del, ...sub.del]);
       result.mod = new Set([...result.mod, ...sub.mod]);
@@ -572,9 +690,14 @@ function collectDiffs(a, b, path = '') {
 }
 
 /**
- * 渲染 JSON（带差异高亮）
+ * 渲染 JSON（带差异高亮和深度限制）
  */
-function renderJson(data, diffs, side, path = '', indent = 0) {
+function renderJson(data, diffs, side, path = '', indent = 0, depth = 0) {
+  // 深度限制检查
+  if (depth > MAX_DEPTH) {
+    return `<span class="error" style="color: #f48771;">嵌套层级过深，已截断</span>`;
+  }
+
   const pad = '  '.repeat(indent);
   const isA = side === 'A';
 
@@ -585,6 +708,10 @@ function renderJson(data, diffs, side, path = '', indent = 0) {
 
   if (Array.isArray(data)) {
     if (data.length === 0) return `<span class="v-bracket">[]</span>`;
+    // W4: diffIdCounter 溢出保护
+    if (diffIdCounter > MAX_ID_COUNTER) {
+      diffIdCounter = 0;
+    }
     const id = 'd' + side + (diffIdCounter++);
     const items = data.map((v, i) => {
       const p = path ? `${path}.${i}` : String(i);
@@ -597,7 +724,7 @@ function renderJson(data, diffs, side, path = '', indent = 0) {
         if (diffs.add.has(p)) lineClass = 'diff-add';
         else if (diffs.mod.has(p)) lineClass = 'diff-mod';
       }
-      return `<div class="line ${lineClass}">${pad}  ${renderJson(v, diffs, side, p, indent + 1)}${i < data.length - 1 ? '<span class="v-comma">,</span>' : ''}</div>`;
+      return `<div class="line ${lineClass}">${pad}  ${renderJson(v, diffs, side, p, indent + 1, depth + 1)}${i < data.length - 1 ? '<span class="v-comma">,</span>' : ''}</div>`;
     }).join('');
     return `<span class="toggle" data-id="${id}">▼</span><span class="v-bracket">[</span><div class="block" id="${id}">${items}</div><span class="v-bracket">]</span>`;
   }
@@ -605,6 +732,10 @@ function renderJson(data, diffs, side, path = '', indent = 0) {
   if (typeof data === 'object') {
     const keys = Object.keys(data);
     if (keys.length === 0) return `<span class="v-bracket">{}</span>`;
+    // W4: diffIdCounter 溢出保护
+    if (diffIdCounter > MAX_ID_COUNTER) {
+      diffIdCounter = 0;
+    }
     const id = 'd' + side + (diffIdCounter++);
     const items = keys.map((k, i) => {
       const p = path ? `${path}.${k}` : k;
@@ -621,7 +752,7 @@ function renderJson(data, diffs, side, path = '', indent = 0) {
         else if (diffs.mod.has(p)) lineClass = 'diff-mod';
       }
 
-      return `<div class="line ${lineClass}">${pad}  <span class="v-key">"${escDiff(k)}"</span>: ${renderJson(data[k], diffs, side, p, indent + 1)}${i < keys.length - 1 ? '<span class="v-comma">,</span>' : ''}</div>`;
+      return `<div class="line ${lineClass}">${pad}  <span class="v-key">"${escDiff(k)}"</span>: ${renderJson(data[k], diffs, side, p, indent + 1, depth + 1)}${i < keys.length - 1 ? '<span class="v-comma">,</span>' : ''}</div>`;
     }).join('');
     return `<span class="toggle" data-id="${id}">▼</span><span class="v-bracket">{</span><div class="block" id="${id}">${items}</div><span class="v-bracket">}</span>`;
   }
@@ -630,14 +761,20 @@ function renderJson(data, diffs, side, path = '', indent = 0) {
 }
 
 /**
- * 绑定折叠事件
+ * 绑定折叠事件（带 ID 验证）
  */
 function bindToggle(container) {
   container.querySelectorAll('.toggle').forEach(el => {
     el.onclick = () => {
-      const block = document.getElementById(el.dataset.id);
-      const hide = block.classList.toggle('hide');
-      el.textContent = hide ? '▶' : '▼';
+      // W7: 验证 dataset.id 格式
+      const id = el.dataset.id;
+      if (id && /^[a-zA-Z][a-zA-Z0-9_-]*$/.test(id)) {
+        const block = document.getElementById(id);
+        if (block) {
+          const hide = block.classList.toggle('hide');
+          el.textContent = hide ? '▶' : '▼';
+        }
+      }
     };
   });
 }
@@ -661,12 +798,6 @@ function renderDiff() {
     del: diffs.del.size,
     mod: diffs.mod.size
   };
-
-  // 调试
-  console.log('=== renderDiff ===');
-  console.log('diffDataA:', diffDataA);
-  console.log('diffDataB:', diffDataB);
-  console.log('diffs:', { add: [...diffs.add], del: [...diffs.del], mod: [...diffs.mod] });
 
   // 更新右侧标题栏的统计
   const diffStatsEl = document.getElementById('diffStats');
@@ -693,11 +824,17 @@ function renderDiff() {
 }
 
 /**
- * 处理粘贴事件
+ * 处理粘贴事件（带大小限制）
  */
 function handlePaste(e, side) {
   e.preventDefault();
   const text = e.clipboardData.getData('text').trim();
+
+  // Y3: 粘贴内容大小限制
+  if (text.length > MAX_INPUT_SIZE) {
+    // 超过限制，不处理
+    return;
+  }
 
   if (side === 'A') {
     diffRawA = text;
@@ -720,13 +857,76 @@ function handlePaste(e, side) {
 
 /**
  * 清理 HTML 中的特殊字符，提取纯 JSON
+ * 增强版：移除所有渲染相关的非 JSON 字符
  */
 function cleanJsonText(text) {
   // 移除折叠符号
   text = text.replace(/[▼▶]/g, '');
-  // 移除数字标记如 "3" 等（元素数量）
+  // 移除数字标记（元素数量，如单独一行的 "3"）
   text = text.replace(/^\d+$/gm, '');
+  // 移除多余的空白行
+  text = text.replace(/\n\s*\n/g, '\n');
+  // 移除行首的多余空格（保留 JSON 结构缩进）
+  // 注意：这里不能简单移除所有空格，否则会破坏 JSON 格式
   return text.trim();
+}
+
+/**
+ * 保存光标位置
+ */
+function saveCaretPosition(element) {
+  const selection = window.getSelection();
+  if (selection.rangeCount === 0) return null;
+
+  const range = selection.getRangeAt(0);
+  const preCaretRange = range.cloneRange();
+  preCaretRange.selectNodeContents(element);
+  preCaretRange.setEnd(range.endContainer, range.endOffset);
+
+  return preCaretRange.toString().length;
+}
+
+/**
+ * 恢复光标位置（带深度限制）
+ */
+function restoreCaretPosition(element, position) {
+  if (position === null) return;
+
+  const selection = window.getSelection();
+  const range = document.createRange();
+  let charCount = 0;
+  let found = false;
+  let currentDepth = 0;
+  const maxTraverseDepth = MAX_DEPTH;
+
+  function traverseNodes(node) {
+    // Y4: 深度限制
+    if (found || currentDepth > maxTraverseDepth) return;
+    currentDepth++;
+
+    if (node.nodeType === Node.TEXT_NODE) {
+      const nextCount = charCount + node.length;
+      if (nextCount >= position) {
+        range.setStart(node, position - charCount);
+        range.collapse(true);
+        found = true;
+      }
+      charCount = nextCount;
+    } else {
+      for (let i = 0; i < node.childNodes.length; i++) {
+        traverseNodes(node.childNodes[i]);
+        if (found) break;
+      }
+    }
+    currentDepth--;
+  }
+
+  traverseNodes(element);
+
+  if (found) {
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
 }
 
 // Diff 输出框事件
@@ -742,6 +942,8 @@ diffOutputA.addEventListener('keyup', () => {
   clearTimeout(keyupTimer);
   keyupTimer = setTimeout(() => {
     const text = cleanJsonText(diffOutputA.innerText);
+    // Y6: keyup 解析大小限制
+    if (text.length > MAX_INPUT_SIZE) return;
     try {
       diffDataA = JSON.parse(text);
       diffRawA = text;
@@ -755,6 +957,8 @@ diffOutputB.addEventListener('keyup', () => {
   clearTimeout(keyupTimer);
   keyupTimer = setTimeout(() => {
     const text = cleanJsonText(diffOutputB.innerText);
+    // Y6: keyup 解析大小限制
+    if (text.length > MAX_INPUT_SIZE) return;
     try {
       diffDataB = JSON.parse(text);
       diffRawB = text;
@@ -785,25 +989,28 @@ function updateDiffStatsOnly() {
 diffOutputA.addEventListener('blur', () => {
   // 尝试从 innerText 解析，先清理
   const text = cleanJsonText(diffOutputA.innerText);
-  console.log('blur A cleaned text:', text);
+  // Z1: blur 解析大小限制
+  if (text.length > MAX_INPUT_SIZE) return;
   try {
     diffDataA = JSON.parse(text);
     diffRawA = text;
+    // 保存当前焦点状态，避免重新渲染时干扰
     renderDiff();
   } catch (e) {
-    console.log('blur A parse error:', e.message);
+    // V2/V8: 移除调试日志，避免泄露敏感数据
   }
 });
 
 diffOutputB.addEventListener('blur', () => {
   const text = cleanJsonText(diffOutputB.innerText);
-  console.log('blur B cleaned text:', text);
+  // Z1: blur 解析大小限制
+  if (text.length > MAX_INPUT_SIZE) return;
   try {
     diffDataB = JSON.parse(text);
     diffRawB = text;
     renderDiff();
   } catch (e) {
-    console.log('blur B parse error:', e.message);
+    // V2/V8: 移除调试日志，避免泄露敏感数据
   }
 });
 
@@ -813,6 +1020,11 @@ compareBtn.onclick = () => {
   // 从两侧提取 JSON
   const textA = cleanJsonText(diffOutputA.innerText);
   const textB = cleanJsonText(diffOutputB.innerText);
+
+  // Z2: compare 解析大小限制
+  if (textA.length > MAX_INPUT_SIZE || textB.length > MAX_INPUT_SIZE) {
+    return;
+  }
 
   try {
     diffDataA = JSON.parse(textA);
@@ -854,17 +1066,155 @@ clearDiffBtn.onclick = () => {
   diffOutputB.innerHTML = '';
 };
 
+// ===================== 语法高亮渲染函数 =====================
+
+/**
+ * 渲染 JSON（带换行格式化，用于输入区域显示）
+ * @param {*} data - JSON 数据
+ * @param {number} indent - 缩进级别
+ * @param {number} depth - 当前深度
+ * @returns {string} HTML 字符串
+ */
+function renderSimpleFormatted(data, indent = 0, depth = 0) {
+  const pad = '  '.repeat(indent);
+
+  // 深度限制检查
+  if (depth > MAX_DEPTH) {
+    return '<span class="error" style="color: #f48771;">嵌套层级过深，已截断</span>';
+  }
+
+  if (data === null) return '<span class="v-null">null</span>';
+  if (typeof data === 'string') return `<span class="v-string">"${esc(data)}"</span>`;
+  if (typeof data === 'number') return `<span class="v-number">${data}</span>`;
+  if (typeof data === 'boolean') return `<span class="v-bool">${data}</span>`;
+
+  if (Array.isArray(data)) {
+    if (data.length === 0) return '<span class="v-bracket">[]</span>';
+    const items = data.map((v, i) => {
+      const val = renderSimpleFormatted(v, indent + 1, depth + 1);
+      const comma = i < data.length - 1 ? '<span class="v-comma">,</span>' : '';
+      return `\n${pad}  ${val}${comma}`;
+    }).join('');
+    return `<span class="v-bracket">[</span>${items}\n${pad}<span class="v-bracket">]</span>`;
+  }
+
+  if (typeof data === 'object') {
+    const keys = Object.keys(data);
+    if (keys.length === 0) return '<span class="v-bracket">{}</span>';
+    const items = keys.map((k, i) => {
+      const val = renderSimpleFormatted(data[k], indent + 1, depth + 1);
+      const comma = i < keys.length - 1 ? '<span class="v-comma">,</span>' : '';
+      return `\n${pad}  <span class="v-key">"${esc(k)}"</span>: ${val}${comma}`;
+    }).join('');
+    return `<span class="v-bracket">{</span>${items}\n${pad}<span class="v-bracket">}</span>`;
+  }
+
+  return String(data);
+}
+
+/**
+ * 渲染 JSON（单行带语法高亮，用于压缩结果显示）
+ * @param {*} data - JSON 数据
+ * @param {number} depth - 当前深度
+ * @returns {string} HTML 字符串
+ */
+function renderCompact(data, depth = 0) {
+  if (depth > MAX_DEPTH) {
+    return '<span class="error">嵌套层级过深</span>';
+  }
+
+  if (data === null) return '<span class="v-null">null</span>';
+  if (typeof data === 'string') return `<span class="v-string">"${esc(data)}"</span>`;
+  if (typeof data === 'number') return `<span class="v-number">${data}</span>`;
+  if (typeof data === 'boolean') return `<span class="v-bool">${data}</span>`;
+
+  if (Array.isArray(data)) {
+    if (data.length === 0) return '<span class="v-bracket">[]</span>';
+    const items = data.map((v, i) => {
+      const val = renderCompact(v, depth + 1);
+      const comma = i < data.length - 1 ? '<span class="v-comma">,</span> ' : '';
+      return val + comma;
+    }).join('');
+    return `<span class="v-bracket">[</span>${items}<span class="v-bracket">]</span>`;
+  }
+
+  if (typeof data === 'object') {
+    const keys = Object.keys(data);
+    if (keys.length === 0) return '<span class="v-bracket">{}</span>';
+    const items = keys.map((k, i) => {
+      const val = renderCompact(data[k], depth + 1);
+      const comma = i < keys.length - 1 ? '<span class="v-comma">,</span> ' : '';
+      return `<span class="v-key">"${esc(k)}"</span>: ${val}${comma}`;
+    }).join('');
+    return `<span class="v-bracket">{</span>${items}<span class="v-bracket">}</span>`;
+  }
+
+  return String(data);
+}
+
+/**
+ * 自动格式化并渲染到 contenteditable 显示区域
+ * @param {HTMLTextAreaElement} inputElement - 隐藏的 textarea（存储原始数据）
+ * @param {HTMLElement} displayElement - contenteditable 显示区域
+ */
+function autoFormatAndRender(inputElement, displayElement) {
+  const text = inputElement.value.trim();
+  if (!text) {
+    displayElement.innerHTML = '';
+    return;
+  }
+
+  // 大小限制
+  if (text.length > MAX_INPUT_SIZE) return;
+
+  try {
+    const obj = JSON.parse(text);
+    // 更新 textarea 的值为格式化后的 JSON
+    inputElement.value = JSON.stringify(obj, null, 2);
+    // 渲染带语法高亮的 HTML 到显示区域
+    displayElement.innerHTML = renderSimpleFormatted(obj);
+  } catch (e) {
+    // 解析失败，保持原样显示
+    displayElement.textContent = text;
+  }
+}
+
+/**
+ * 自动格式化输入框内容
+ * @param {HTMLTextAreaElement} inputElement - 输入框元素
+ */
+function autoFormatInput(inputElement) {
+  const text = inputElement.value.trim();
+  if (!text) return;
+
+  // 大小限制
+  if (text.length > MAX_INPUT_SIZE) return;
+
+  try {
+    const obj = JSON.parse(text);
+    inputElement.value = JSON.stringify(obj, null, 2);
+  } catch (e) {
+    // 解析失败，保持原样
+  }
+}
+
 // ===================== JSON 转换功能 =====================
 
 /**
- * 将 JSON 转换为 TypeScript 接口
+ * 将 JSON 转换为 TypeScript 接口（带深度限制）
  * @param {object} data - JSON 对象
  * @param {string} interfaceName - 接口名称
  * @param {number} indent - 缩进级别
+ * @param {number} depth - 当前深度
  * @returns {string} TypeScript 接口定义
  */
-function jsonToTypeScript(data, interfaceName = 'Root', indent = 0) {
+function jsonToTypeScript(data, interfaceName = 'Root', indent = 0, depth = 0) {
   const pad = '  '.repeat(indent);
+
+  // W2: 深度限制
+  if (depth > MAX_DEPTH) {
+    return `${pad}// ${interfaceName}: 嵌套层级过深，已截断\n`;
+  }
 
   if (data === null) {
     return `${pad}type ${interfaceName} = null;\n`;
@@ -879,7 +1229,7 @@ function jsonToTypeScript(data, interfaceName = 'Root', indent = 0) {
     if (typeof firstItem === 'object' && firstItem !== null) {
       // 对象数组
       const itemType = `${interfaceName}Item`;
-      let result = jsonToTypeScript(firstItem, itemType, indent);
+      let result = jsonToTypeScript(firstItem, itemType, indent, depth + 1);
       result += `${pad}type ${interfaceName} = ${itemType}[];\n`;
       return result;
     } else {
@@ -900,7 +1250,9 @@ function jsonToTypeScript(data, interfaceName = 'Root', indent = 0) {
       const value = data[key];
       const tsType = getTsTypeFromValue(value, `${interfaceName}_${capitalize(key)}`, indent);
       const optional = value === null ? '?' : '';
-      result += `${pad}  ${key}${optional}: ${tsType};\n`;
+      // W6: 处理 key 中的特殊字符，使用有效的 TypeScript 属性名
+      const safeKey = isValidIdentifier(key) ? key : `'${key.replace(/'/g, "\\'")}'`;
+      result += `${pad}  ${safeKey}${optional}: ${tsType};\n`;
     }
     result += `${pad}}\n`;
 
@@ -908,10 +1260,10 @@ function jsonToTypeScript(data, interfaceName = 'Root', indent = 0) {
     for (const key of keys) {
       const value = data[key];
       if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-        result += jsonToTypeScript(value, `${interfaceName}_${capitalize(key)}`, indent);
+        result += jsonToTypeScript(value, `${interfaceName}_${capitalize(key)}`, indent, depth + 1);
       }
       if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object' && value[0] !== null) {
-        result += jsonToTypeScript(value[0], `${interfaceName}_${capitalize(key)}Item`, indent);
+        result += jsonToTypeScript(value[0], `${interfaceName}_${capitalize(key)}Item`, indent, depth + 1);
       }
     }
 
@@ -919,6 +1271,14 @@ function jsonToTypeScript(data, interfaceName = 'Root', indent = 0) {
   }
 
   return `${pad}type ${interfaceName} = ${getTsType(data)};\n`;
+}
+
+/**
+ * 检查是否为有效的标识符（用于 TypeScript 属性名）
+ */
+function isValidIdentifier(str) {
+  // 只包含字母、数字、下划线，且不以数字开头
+  return /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(str);
 }
 
 /**
@@ -965,15 +1325,21 @@ function capitalize(str) {
 }
 
 /**
- * 将 JSON 转换为 Go struct
+ * 将 JSON 转换为 Go struct（带深度限制）
  * @param {object} data - JSON 对象
  * @param {string} structName - 结构体名称
  * @param {number} indent - 缩进级别
  * @param {Set} generatedStructs - 已生成的结构体（避免重复）
+ * @param {number} depth - 当前深度
  * @returns {string} Go struct 定义
  */
-function jsonToGo(data, structName = 'Root', indent = 0, generatedStructs = new Set()) {
+function jsonToGo(data, structName = 'Root', indent = 0, generatedStructs = new Set(), depth = 0) {
   const pad = '\t'.repeat(indent);
+
+  // W3: 深度限制
+  if (depth > MAX_DEPTH) {
+    return `${pad}// ${structName}: 嵌套层级过深，已截断\n`;
+  }
 
   if (data === null || typeof data !== 'object') {
     return `${pad}// ${structName} is a primitive type\n`;
@@ -986,7 +1352,7 @@ function jsonToGo(data, structName = 'Root', indent = 0, generatedStructs = new 
     const firstItem = data[0];
     if (typeof firstItem === 'object' && firstItem !== null) {
       const itemName = `${structName}Item`;
-      let result = jsonToGo(firstItem, itemName, indent, generatedStructs);
+      let result = jsonToGo(firstItem, itemName, indent, generatedStructs, depth + 1);
       result = result.replace(`type ${itemName} struct`, `type ${structName} []${itemName}`);
       return result;
     } else {
@@ -1010,7 +1376,8 @@ function jsonToGo(data, structName = 'Root', indent = 0, generatedStructs = new 
   for (const key of keys) {
     const value = data[key];
     const goType = getGoTypeFromValue(value, `${structName}${capitalize(key)}`, indent, generatedStructs);
-    const jsonTag = key;
+    // W5: 转义 json tag 中的特殊字符
+    const jsonTag = key.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
     const fieldName = capitalize(key);
     result += `${pad}\t${fieldName} ${goType} \`json:"${jsonTag}"\`\n`;
   }
@@ -1020,10 +1387,10 @@ function jsonToGo(data, structName = 'Root', indent = 0, generatedStructs = new 
   for (const key of keys) {
     const value = data[key];
     if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      result += jsonToGo(value, `${structName}${capitalize(key)}`, indent, generatedStructs);
+      result += jsonToGo(value, `${structName}${capitalize(key)}`, indent, generatedStructs, depth + 1);
     }
     if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object' && value[0] !== null) {
-      result += jsonToGo(value[0], `${structName}${capitalize(key)}Item`, indent, generatedStructs);
+      result += jsonToGo(value[0], `${structName}${capitalize(key)}Item`, indent, generatedStructs, depth + 1);
     }
   }
 
@@ -1073,12 +1440,19 @@ function getGoTypeFromValue(value, typeName, indent, generatedStructs) {
 }
 
 /**
- * 将 JSON 转换为 YAML
+ * 将 JSON 转换为 YAML（完善字符串转义，带深度限制）
  * @param {object} data - JSON 对象
  * @param {number} indent - 缩进级别
+ * @param {number} depth - 当前深度
+ * @param {boolean} inArray - 是否在数组内
  * @returns {string} YAML 字符串
  */
-function jsonToYaml(data, indent = 0) {
+function jsonToYaml(data, indent = 0, depth = 0, inArray = false) {
+  // A1: 深度限制
+  if (depth > MAX_DEPTH) {
+    return '# 嵌套层级过深，已截断';
+  }
+
   const pad = '  '.repeat(indent);
 
   if (data === null) {
@@ -1086,9 +1460,23 @@ function jsonToYaml(data, indent = 0) {
   }
 
   if (typeof data === 'string') {
-    // 如果包含特殊字符，用引号包裹
-    if (data.includes(':') || data.includes('#') || data.includes('\n') || data.includes('"')) {
-      return `"${data.replace(/"/g, '\\"')}"`;
+    // W9: 完善 YAML 特殊字符转义
+    const needsQuote = /[:#"'\n\t{}[\]&*?|<>=!%@`]/.test(data) ||
+                       /^[-?]$/.test(data) ||
+                       /^[-?]\s/.test(data) ||
+                       /\s$/.test(data) ||
+                       /^\s/.test(data) ||
+                       /^[0-9]+$/.test(data) ||
+                       data === 'true' || data === 'false' || data === 'null' || data === '~';
+
+    if (needsQuote) {
+      const escaped = data
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r')
+        .replace(/\t/g, '\\t');
+      return `"${escaped}"`;
     }
     return data;
   }
@@ -1101,17 +1489,32 @@ function jsonToYaml(data, indent = 0) {
     return data ? 'true' : 'false';
   }
 
+  // A2: split 行数限制常量
+  const MAX_YAML_LINES = 10000;
+
   if (Array.isArray(data)) {
     if (data.length === 0) {
       return '[]';
     }
-    return data.map(item => {
-      const value = jsonToYaml(item, indent + 1);
+    const lines = [];
+    for (let i = 0; i < data.length; i++) {
+      const item = data[i];
       if (typeof item === 'object' && item !== null) {
-        return `- \n${value.split('\n').map(line => '  ' + line).join('\n')}`;
+        // 对象元素：- 后面跟第一个属性，其余属性换行
+        const itemLines = jsonToYaml(item, indent + 1, depth + 1, true).split('\n');
+        const limitedLines = itemLines.slice(0, MAX_YAML_LINES);
+        if (limitedLines.length > 0) {
+          lines.push(`${pad}- ${limitedLines[0].trim()}`);
+          for (let j = 1; j < limitedLines.length; j++) {
+            lines.push(`${pad}  ${limitedLines[j].trim()}`);
+          }
+        }
+      } else {
+        // 简单值
+        lines.push(`${pad}- ${jsonToYaml(item, 0, depth + 1)}`);
       }
-      return `- ${value}`;
-    }).join('\n' + pad);
+    }
+    return lines.join('\n');
   }
 
   if (typeof data === 'object') {
@@ -1120,56 +1523,194 @@ function jsonToYaml(data, indent = 0) {
       return '{}';
     }
 
-    return keys.map(key => {
+    const lines = [];
+    for (const key of keys) {
       const value = data[key];
-      const yamlValue = jsonToYaml(value, indent + 1);
-
-      if (typeof value === 'object' && value !== null) {
-        if (Array.isArray(value) && value.length > 0) {
-          return `${key}:\n${yamlValue.split('\n').map(line => '  ' + line).join('\n')}`;
-        } else if (!Array.isArray(value)) {
-          return `${key}:\n${yamlValue.split('\n').map(line => '  ' + line).join('\n')}`;
+      if (value === null) {
+        lines.push(`${pad}${key}: null`);
+      } else if (Array.isArray(value) && value.length === 0) {
+        lines.push(`${pad}${key}: []`);
+      } else if (typeof value === 'object' && Object.keys(value).length === 0) {
+        lines.push(`${pad}${key}: {}`);
+      } else if (typeof value === 'object' && value !== null) {
+        // 嵌套对象或数组
+        const valueLines = jsonToYaml(value, indent + 1, depth + 1).split('\n');
+        const limitedLines = valueLines.slice(0, MAX_YAML_LINES);
+        lines.push(`${pad}${key}:`);
+        for (const line of limitedLines) {
+          lines.push(line);
         }
+      } else {
+        // 简单值
+        lines.push(`${pad}${key}: ${jsonToYaml(value, 0, depth + 1)}`);
       }
-
-      return `${key}: ${yamlValue}`;
-    }).join('\n' + pad);
+    }
+    return lines.join('\n');
   }
 
   return String(data);
 }
 
 /**
- * 执行转换
+ * TypeScript 语法高亮
+ * @param {string} code - TypeScript 代码
+ * @returns {string} HTML 字符串
+ */
+function highlightTypeScript(code) {
+  // 先转义 HTML 特殊字符
+  let result = esc(code);
+
+  // 高亮注释
+  result = result.replace(/(\/\/[^\n]*)/g, '<span style="color:#6a9955;">$1</span>');
+
+  // 高亮字符串（单引号内容）
+  result = result.replace(/('[^']*')/g, '<span style="color:#ce9178;">$1</span>');
+
+  // 高亮关键字
+  const keywords = ['interface', 'type', 'extends', 'const', 'let', 'var',
+    'function', 'return', 'if', 'else', 'for', 'while', 'class', 'new',
+    'import', 'export', 'from', 'default', 'async', 'await', 'readonly'];
+  keywords.forEach(kw => {
+    result = result.replace(new RegExp(`\\b${kw}\\b`, 'g'), '<span style="color:#569cd6;">' + kw + '</span>');
+  });
+
+  // 高亮类型
+  const types = ['string', 'number', 'boolean', 'null', 'undefined', 'any', 'void',
+    'never', 'object', 'unknown', 'bigint', 'symbol'];
+  types.forEach(t => {
+    result = result.replace(new RegExp(`\\b${t}\\b`, 'g'), '<span style="color:#4ec9b0;">' + t + '</span>');
+  });
+
+  return result;
+}
+
+/**
+ * Go 语法高亮
+ * @param {string} code - Go 代码
+ * @returns {string} HTML 字符串
+ */
+function highlightGo(code) {
+  let result = esc(code);
+
+  // 高亮注释
+  result = result.replace(/(\/\/[^\n]*)/g, '<span style="color:#6a9955;">$1</span>');
+
+  // 高亮 json tag
+  result = result.replace(/(`json:"[^"]*"`)/g, '<span style="color:#ce9178;">$1</span>');
+
+  // 高亮关键字
+  const keywords = ['package', 'import', 'func', 'return', 'var', 'const', 'type',
+    'struct', 'interface', 'map', 'chan', 'if', 'else', 'for', 'range',
+    'switch', 'case', 'default', 'break', 'continue', 'go', 'defer', 'select'];
+  keywords.forEach(kw => {
+    result = result.replace(new RegExp(`\\b${kw}\\b`, 'g'), '<span style="color:#569cd6;">' + kw + '</span>');
+  });
+
+  // 高亮类型
+  const types = ['string', 'int', 'int8', 'int16', 'int32', 'int64',
+    'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'uintptr',
+    'float32', 'float64', 'bool', 'byte', 'rune', 'error', 'any'];
+  types.forEach(t => {
+    result = result.replace(new RegExp(`\\b${t}\\b`, 'g'), '<span style="color:#4ec9b0;">' + t + '</span>');
+  });
+
+  return result;
+}
+
+/**
+ * YAML 语法高亮
+ * @param {string} code - YAML 代码
+ * @returns {string} HTML 字符串
+ */
+function highlightYaml(code) {
+  const lines = code.split('\n');
+  const result = [];
+
+  for (let line of lines) {
+    let highlighted = esc(line);
+
+    // 高亮注释
+    const commentIndex = line.indexOf('#');
+    if (commentIndex >= 0) {
+      const beforeComment = line.substring(0, commentIndex);
+      const quoteCount = (beforeComment.match(/"/g) || []).length;
+      if (quoteCount % 2 === 0) {
+        highlighted = esc(beforeComment) + `<span style="color:#6a9955;">${esc(line.substring(commentIndex))}</span>`;
+        result.push(highlighted);
+        continue;
+      }
+    }
+
+    // 高亮键名（冒号前）
+    const colonMatch = highlighted.match(/^(\s*)([\w.-]+)(:\s*)/);
+    if (colonMatch) {
+      const indent = colonMatch[1];
+      const key = colonMatch[2];
+      const colon = colonMatch[3];
+      const rest = highlighted.substring(colonMatch[0].length);
+      highlighted = indent + `<span style="color:#9cdcfe;">${key}</span>` + colon + rest;
+    }
+
+    // 高亮布尔值和 null（在行尾）
+    highlighted = highlighted.replace(/:\s*(true|false|null)\s*$/g, ': <span style="color:#569cd6;">$1</span>');
+
+    // 高亮数字（在行尾）
+    highlighted = highlighted.replace(/:\s*(-?\d+\.?\d*)\s*$/g, ': <span style="color:#b5cea8;">$1</span>');
+
+    // 高亮列表标记
+    highlighted = highlighted.replace(/^(\s*)(-)(\s)/, '$1<span style="color:#ffd700;">-</span>$3');
+
+    result.push(highlighted);
+  }
+
+  return result.join('\n');
+}
+
+/**
+ * 执行转换（带输入大小限制）
  */
 function doConvert() {
   const text = convertInput.value.trim();
   if (!text) {
-    convertResult.textContent = '';
+    convertResult.innerHTML = '';
+    return;
+  }
+
+  // 输入大小检查
+  if (text.length > MAX_INPUT_SIZE) {
+    convertResult.innerHTML = `<span class="error">输入过大 (${(text.length / 1024 / 1024).toFixed(2)}MB)，请限制在 1MB 以内</span>`;
     return;
   }
 
   try {
     const data = JSON.parse(text);
     let result = '';
+    let highlighted = '';
 
     switch (currentConvertType) {
       case 'typescript':
         result = jsonToTypeScript(data);
+        highlighted = highlightTypeScript(result);
         break;
       case 'go':
         result = jsonToGo(data);
+        highlighted = highlightGo(result);
         break;
       case 'yaml':
         result = jsonToYaml(data);
+        highlighted = highlightYaml(result);
         break;
     }
 
-    convertResult.textContent = result;
-    convertResult.style.color = 'var(--text)';
+    // A3: 转换结果大小限制（1MB）
+    const MAX_CONVERT_RESULT_SIZE = 1024 * 1024;
+    if (result.length > MAX_CONVERT_RESULT_SIZE) {
+      convertResult.innerHTML = `<span class="error">转换结果过大 (${(result.length / 1024 / 1024).toFixed(2)}MB)，已截断</span>`;
+    } else {
+      convertResult.innerHTML = highlighted;
+    }
   } catch (e) {
-    convertResult.textContent = `解析失败: ${e.message}`;
-    convertResult.style.color = '#f48771';
+    convertResult.innerHTML = `<span class="error">解析失败: ${esc(e.message)}</span>`;
   }
 }
 
@@ -1183,15 +1724,30 @@ document.querySelectorAll('.convert-tab').forEach(tab => {
   };
 });
 
-// 输入框事件
+// 输入框事件（带自动格式化和语法高亮）
+const convertOutputDisplay = document.getElementById('convertOutputDisplay');
 convertInput.addEventListener('input', () => {
   clearTimeout(convertInput._timer);
-  convertInput._timer = setTimeout(doConvert, 300);
+  convertInput._timer = setTimeout(() => {
+    autoFormatAndRender(convertInput, convertOutputDisplay);
+    doConvert();
+  }, 300);
+});
+
+// 粘贴事件处理
+convertOutputDisplay.addEventListener('paste', (e) => {
+  e.preventDefault();
+  const text = e.clipboardData.getData('text').trim();
+  if (text.length > MAX_INPUT_SIZE) return;
+  convertInput.value = text;
+  autoFormatAndRender(convertInput, convertOutputDisplay);
+  doConvert();
 });
 
 // 清空
 clearConvertBtn.onclick = () => {
   convertInput.value = '';
+  convertOutputDisplay.innerHTML = '';
   convertResult.textContent = '';
 };
 
@@ -1199,8 +1755,12 @@ clearConvertBtn.onclick = () => {
 copyConvertBtn.onclick = async () => {
   const text = convertResult.textContent;
   if (text) {
-    await navigator.clipboard.writeText(text);
-    showToast();
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast();
+    } catch (e) {
+      // Z4: 剪贴板写入失败处理
+    }
   }
 };
 
@@ -1241,7 +1801,8 @@ function jsonPath(data, path) {
 
       if (token.type === 'key') {
         // 对象属性
-        if (typeof result === 'object' && !Array.isArray(result) && token.value in result) {
+        // V5: 使用 hasOwnProperty 防止原型链污染
+        if (typeof result === 'object' && !Array.isArray(result) && Object.prototype.hasOwnProperty.call(result, token.value)) {
           newResults.push(result[token.value]);
         }
       } else if (token.type === 'index') {
@@ -1251,17 +1812,28 @@ function jsonPath(data, path) {
             // [*] 所有元素
             newResults.push(...result);
           } else if (typeof token.value === 'number') {
+            // 正索引检查
             if (token.value >= 0 && token.value < result.length) {
               newResults.push(result[token.value]);
-            } else if (token.value < 0 && Math.abs(token.value) <= result.length) {
-              // 负索引
-              newResults.push(result[result.length + token.value]);
+            } else if (token.value < 0) {
+              // 负索引边界检查：-1 表示最后一个元素，-length 表示第一个元素
+              const actualIndex = result.length + token.value;
+              if (actualIndex >= 0 && actualIndex < result.length) {
+                newResults.push(result[actualIndex]);
+              }
+              // 越界的负索引直接忽略，不报错
             }
           } else if (Array.isArray(token.value)) {
             // 多个索引 [a,b,c]
             for (const idx of token.value) {
               if (idx >= 0 && idx < result.length) {
                 newResults.push(result[idx]);
+              } else if (idx < 0) {
+                // 负索引边界检查
+                const actualIndex = result.length + idx;
+                if (actualIndex >= 0 && actualIndex < result.length) {
+                  newResults.push(result[actualIndex]);
+                }
               }
             }
           }
@@ -1293,7 +1865,7 @@ function jsonPath(data, path) {
 }
 
 /**
- * 解析路径为 token 数组
+ * 解析路径为 token 数组（带循环保护）
  */
 function tokenize(path) {
   const tokens = [];
@@ -1302,13 +1874,21 @@ function tokenize(path) {
   // 跳过 $
   if (path[0] === '$') i = 1;
 
-  while (i < path.length) {
+  // Y5: 循环保护 - 最大迭代次数
+  const maxIterations = 1000;
+  let iterations = 0;
+
+  while (i < path.length && iterations < maxIterations) {
+    iterations++;
+
     if (path[i] === '.') {
       if (path[i + 1] === '.') {
         // 递归下降 ..
         i += 2;
         let key = '';
-        while (i < path.length && path[i] !== '.' && path[i] !== '[') {
+        let keyIterations = 0;
+        while (i < path.length && path[i] !== '.' && path[i] !== '[' && keyIterations < maxIterations) {
+          keyIterations++;
           key += path[i];
           i++;
         }
@@ -1321,7 +1901,9 @@ function tokenize(path) {
           i++;
         } else {
           let key = '';
-          while (i < path.length && path[i] !== '.' && path[i] !== '[') {
+          let keyIterations = 0;
+          while (i < path.length && path[i] !== '.' && path[i] !== '[' && keyIterations < maxIterations) {
+            keyIterations++;
             key += path[i];
             i++;
           }
@@ -1331,7 +1913,9 @@ function tokenize(path) {
     } else if (path[i] === '[') {
       i++;
       let content = '';
-      while (i < path.length && path[i] !== ']') {
+      let contentIterations = 0;
+      while (i < path.length && path[i] !== ']' && contentIterations < maxIterations) {
+        contentIterations++;
         content += path[i];
         i++;
       }
@@ -1356,46 +1940,50 @@ function tokenize(path) {
 }
 
 /**
- * 递归查找所有匹配的 key
+ * 递归查找所有匹配的 key（带深度限制）
  */
-function findRecursive(obj, key, results) {
+function findRecursive(obj, key, results, depth = 0) {
+  // V1: 深度限制
+  if (depth > MAX_DEPTH) return;
   if (obj === null || obj === undefined) return;
 
   if (Array.isArray(obj)) {
     for (const item of obj) {
-      findRecursive(item, key, results);
+      findRecursive(item, key, results, depth + 1);
     }
   } else if (typeof obj === 'object') {
     for (const [k, v] of Object.entries(obj)) {
       if (k === key) {
         results.push(v);
       }
-      findRecursive(v, key, results);
+      findRecursive(v, key, results, depth + 1);
     }
   }
 }
 
 /**
- * 收集所有值
+ * 收集所有值（带深度限制）
  */
-function collectAll(obj, results) {
+function collectAll(obj, results, depth = 0) {
+  // V1: 深度限制
+  if (depth > MAX_DEPTH) return;
   if (obj === null || obj === undefined) return;
 
   if (Array.isArray(obj)) {
     for (const item of obj) {
       results.push(item);
-      collectAll(item, results);
+      collectAll(item, results, depth + 1);
     }
   } else if (typeof obj === 'object') {
     for (const v of Object.values(obj)) {
       results.push(v);
-      collectAll(v, results);
+      collectAll(v, results, depth + 1);
     }
   }
 }
 
 /**
- * 执行 JSON Path 查询
+ * 执行 JSON Path 查询（带输入大小限制）
  */
 function queryPath() {
   const text = pathInput.value.trim();
@@ -1406,15 +1994,28 @@ function queryPath() {
     return;
   }
 
+  // 输入大小检查
+  if (text.length > MAX_INPUT_SIZE) {
+    pathResult.innerHTML = `<div class="error">输入过大 (${(text.length / 1024 / 1024).toFixed(2)}MB)，请限制在 1MB 以内</div>`;
+    return;
+  }
+
   if (!expr) {
     pathResult.innerHTML = '<div class="error">请输入 JSON Path 表达式</div>';
+    return;
+  }
+
+  // X4: JSON Path 表达式长度限制（1000字符）
+  const MAX_PATH_EXPR_LENGTH = 1000;
+  if (expr.length > MAX_PATH_EXPR_LENGTH) {
+    pathResult.innerHTML = `<div class="error">路径表达式过长 (${expr.length}字符)，请限制在 ${MAX_PATH_EXPR_LENGTH} 字符以内</div>`;
     return;
   }
 
   try {
     pathData = JSON.parse(text);
   } catch (e) {
-    pathResult.innerHTML = `<div class="error">JSON 解析失败: ${e.message}</div>`;
+    pathResult.innerHTML = `<div class="error">JSON 解析失败: ${esc(e.message)}</div>`;
     return;
   }
 
@@ -1436,14 +2037,29 @@ function queryPath() {
     });
     pathResult.innerHTML = html;
   } catch (e) {
-    pathResult.innerHTML = `<div class="error">查询失败: ${e.message}</div>`;
+    // X1: 错误信息转义
+    pathResult.innerHTML = `<div class="error">查询失败: ${esc(e.message)}</div>`;
   }
 }
 
-// Path 输入框事件
+// Path 输入框事件（带自动格式化和语法高亮）
+const pathOutputDisplay = document.getElementById('pathOutputDisplay');
 pathInput.addEventListener('input', () => {
   clearTimeout(pathInput._timer);
-  pathInput._timer = setTimeout(queryPath, 500);
+  pathInput._timer = setTimeout(() => {
+    autoFormatAndRender(pathInput, pathOutputDisplay);
+    queryPath();
+  }, 500);
+});
+
+// 粘贴事件处理
+pathOutputDisplay.addEventListener('paste', (e) => {
+  e.preventDefault();
+  const text = e.clipboardData.getData('text').trim();
+  if (text.length > MAX_INPUT_SIZE) return;
+  pathInput.value = text;
+  autoFormatAndRender(pathInput, pathOutputDisplay);
+  queryPath();
 });
 
 pathExpr.addEventListener('input', () => {
@@ -1459,6 +2075,7 @@ queryPathBtn.onclick = queryPath;
 
 clearPathBtn.onclick = () => {
   pathInput.value = '';
+  pathOutputDisplay.innerHTML = '';
   pathExpr.value = '';
   pathResult.innerHTML = '';
   pathData = null;
@@ -1474,32 +2091,75 @@ const escapeBtn = document.getElementById('escapeBtn');
 const unescapeBtn = document.getElementById('unescapeBtn');
 const copyCompactBtn = document.getElementById('copyCompactBtn');
 
+// 压缩模式输入框自动格式化和语法高亮
+const compactOutputDisplay = document.getElementById('compactOutputDisplay');
+compactInput.addEventListener('input', () => {
+  clearTimeout(compactInput._timer);
+  compactInput._timer = setTimeout(() => {
+    autoFormatAndRender(compactInput, compactOutputDisplay);
+  }, 500);
+});
+
+// 粘贴事件处理
+compactOutputDisplay.addEventListener('paste', (e) => {
+  e.preventDefault();
+  const text = e.clipboardData.getData('text').trim();
+  if (text.length > MAX_INPUT_SIZE) return;
+  compactInput.value = text;
+  autoFormatAndRender(compactInput, compactOutputDisplay);
+});
+
+// 压缩模式结果显示区域
+const compactResultDisplay = document.getElementById('compactResultDisplay');
+
 /**
- * JSON 压缩（去除空格换行）
+ * JSON 压缩（去除空格换行，带输入大小限制）
  */
 function compactJson() {
   const text = compactInput.value.trim();
   if (!text) {
     compactOutput.value = '';
+    compactResultDisplay.innerHTML = '';
+    return;
+  }
+
+  // 输入大小检查
+  if (text.length > MAX_INPUT_SIZE) {
+    const errMsg = `输入过大 (${(text.length / 1024 / 1024).toFixed(2)}MB)，请限制在 1MB 以内`;
+    compactOutput.value = errMsg;
+    compactResultDisplay.innerHTML = `<span class="error">${esc(errMsg)}</span>`;
     return;
   }
 
   try {
     const obj = JSON.parse(text);
-    compactOutput.value = JSON.stringify(obj);
+    const compacted = JSON.stringify(obj);
+    compactOutput.value = compacted;
+    // 压缩后的 JSON 显示语法高亮（单行格式）
+    compactResultDisplay.innerHTML = renderCompact(obj);
   } catch (e) {
-    // 可能已经是压缩格式，尝试直接输出
-    compactOutput.value = `解析失败: ${e.message}`;
+    const errMsg = `解析失败: ${esc(e.message)}`;
+    compactOutput.value = errMsg;
+    compactResultDisplay.innerHTML = `<span class="error">${errMsg}</span>`;
   }
 }
 
 /**
- * JSON 转义（转为字符串）
+ * JSON 转义（转为字符串，带输入大小限制）
  */
 function escapeJson() {
   const text = compactInput.value.trim();
   if (!text) {
     compactOutput.value = '';
+    compactResultDisplay.innerHTML = '';
+    return;
+  }
+
+  // 输入大小检查
+  if (text.length > MAX_INPUT_SIZE) {
+    const errMsg = `输入过大 (${(text.length / 1024 / 1024).toFixed(2)}MB)，请限制在 1MB 以内`;
+    compactOutput.value = errMsg;
+    compactResultDisplay.innerHTML = `<span class="error">${esc(errMsg)}</span>`;
     return;
   }
 
@@ -1509,21 +2169,35 @@ function escapeJson() {
     // 转义：将 JSON 字符串化后再转义引号
     const jsonStr = JSON.stringify(obj);
     // 转义特殊字符
-    compactOutput.value = jsonStr
+    const escaped = jsonStr
       .replace(/\\/g, '\\\\')
       .replace(/"/g, '\\"');
+    compactOutput.value = escaped;
+    // 转义结果显示为字符串（橙色）
+    compactResultDisplay.innerHTML = `<span class="v-string">"${esc(escaped)}"</span>`;
   } catch (e) {
-    compactOutput.value = `解析失败: ${e.message}`;
+    const errMsg = `解析失败: ${esc(e.message)}`;
+    compactOutput.value = errMsg;
+    compactResultDisplay.innerHTML = `<span class="error">${errMsg}</span>`;
   }
 }
 
 /**
- * JSON 反转义（从字符串还原）
+ * JSON 反转义（从字符串还原，带输入大小限制）
  */
 function unescapeJson() {
   const text = compactInput.value.trim();
   if (!text) {
     compactOutput.value = '';
+    compactResultDisplay.innerHTML = '';
+    return;
+  }
+
+  // 输入大小检查
+  if (text.length > MAX_INPUT_SIZE) {
+    const errMsg = `输入过大 (${(text.length / 1024 / 1024).toFixed(2)}MB)，请限制在 1MB 以内`;
+    compactOutput.value = errMsg;
+    compactResultDisplay.innerHTML = `<span class="error">${esc(errMsg)}</span>`;
     return;
   }
 
@@ -1532,11 +2206,23 @@ function unescapeJson() {
     let unescaped = text
       .replace(/\\"/g, '"')
       .replace(/\\\\/g, '\\');
+    // Z3: 反转义后大小限制（反转义可能使内容变大）
+    if (unescaped.length > MAX_INPUT_SIZE) {
+      const errMsg = `反转义后内容过大，请限制在 1MB 以内`;
+      compactOutput.value = errMsg;
+      compactResultDisplay.innerHTML = `<span class="error">${errMsg}</span>`;
+      return;
+    }
     // 尝试解析并格式化
     const obj = JSON.parse(unescaped);
-    compactOutput.value = JSON.stringify(obj, null, 2);
+    const formatted = JSON.stringify(obj, null, 2);
+    compactOutput.value = formatted;
+    // 反转义后显示语法高亮
+    compactResultDisplay.innerHTML = renderSimpleFormatted(obj);
   } catch (e) {
-    compactOutput.value = `反转义失败: ${e.message}`;
+    const errMsg = `反转义失败: ${esc(e.message)}`;
+    compactOutput.value = errMsg;
+    compactResultDisplay.innerHTML = `<span class="error">${errMsg}</span>`;
   }
 }
 
@@ -1546,13 +2232,19 @@ unescapeBtn.onclick = unescapeJson;
 
 clearCompactBtn.onclick = () => {
   compactInput.value = '';
+  compactOutputDisplay.innerHTML = '';
   compactOutput.value = '';
+  compactResultDisplay.innerHTML = '';
 };
 
 copyCompactBtn.onclick = async () => {
   const text = compactOutput.value;
-  if (text && !text.startsWith('解析失败') && !text.startsWith('反转义失败')) {
-    await navigator.clipboard.writeText(text);
-    showToast();
+  if (text && !text.startsWith('解析失败') && !text.startsWith('反转义失败') && !text.startsWith('输入过大') && !text.startsWith('反转义后')) {
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast();
+    } catch (e) {
+      // Z4: 剪贴板写入失败处理
+    }
   }
 };

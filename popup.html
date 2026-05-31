@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JSON Formatter</title>
+  <title>JSON Side</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
@@ -80,7 +80,9 @@
       line-height: 1.5;
       white-space: pre-wrap;
       word-break: break-all;
+      outline: none;
     }
+    .output:focus { border-color: var(--accent); }
     .output .v-key { color: #9cdcfe; }
     .output .v-string { color: #ce9178; }
     .output .v-number { color: #b5cea8; }
@@ -310,7 +312,7 @@
   </style>
 </head>
 <body>
-  <h1>JSON Formatter</h1>
+  <h1>JSON Side</h1>
   <div class="toolbar">
     <button id="modeFormatBtn" class="mode-btn active">格式化</button>
     <button id="modeDiffBtn" class="mode-btn">Diff</button>
@@ -388,7 +390,8 @@
         <span>JSON 输入</span>
         <button id="clearConvertBtn" class="small-btn">清空</button>
       </div>
-      <textarea id="convertInput" placeholder='粘贴 JSON，如：{"name": "test", "age": 18}'></textarea>
+      <textarea id="convertInput" placeholder='粘贴 JSON，如：{"name": "test", "age": 18}' style="display: none;"></textarea>
+      <div class="output" id="convertOutputDisplay" contenteditable="true" spellcheck="false"></div>
     </div>
     <div class="panel">
       <div class="panel-label diff-toolbar">
@@ -412,7 +415,8 @@
         <span>JSON 输入</span>
         <button id="clearPathBtn" class="small-btn">清空</button>
       </div>
-      <textarea id="pathInput" placeholder='粘贴 JSON，如：{"store": {"book": [{"title": "A"}]}}'></textarea>
+      <textarea id="pathInput" placeholder='粘贴 JSON，如：{"store": {"book": [{"title": "A"}]}}' style="display: none;"></textarea>
+      <div class="output" id="pathOutputDisplay" contenteditable="true" spellcheck="false"></div>
     </div>
     <div class="panel">
       <div class="panel-label diff-toolbar">
@@ -430,19 +434,21 @@
         <span>JSON 输入</span>
         <button id="clearCompactBtn" class="small-btn">清空</button>
       </div>
-      <textarea id="compactInput" placeholder='粘贴 JSON 或转义字符串'></textarea>
+      <textarea id="compactInput" placeholder='粘贴 JSON 或转义字符串' style="display: none;"></textarea>
+      <div class="output" id="compactOutputDisplay" contenteditable="true" spellcheck="false"></div>
     </div>
     <div class="panel">
       <div class="panel-label diff-toolbar">
-        <span>操作</span>
+        <span>操作结果</span>
+        <button id="copyCompactBtn" class="small-btn">复制结果</button>
       </div>
       <div style="display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
         <button id="compactBtn" class="small-btn primary-btn">压缩</button>
         <button id="escapeBtn" class="small-btn">转义</button>
         <button id="unescapeBtn" class="small-btn">反转义</button>
-        <button id="copyCompactBtn" class="small-btn">复制结果</button>
       </div>
-      <textarea id="compactOutput" readonly style="flex: 1;"></textarea>
+      <textarea id="compactOutput" readonly style="display: none;"></textarea>
+      <div class="output" id="compactResultDisplay" contenteditable="false" spellcheck="false" style="flex: 1;"></div>
     </div>
   </div>
   <!-- 历史记录侧边栏 -->

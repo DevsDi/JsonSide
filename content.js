@@ -1,5 +1,5 @@
 /**
- * JSON Formatter - Content Script
+ * JSON Side - Content Script
  * 页面内时间戳悬停格式化
  */
 
@@ -12,7 +12,7 @@
   function createTooltip() {
     if (tooltip) return;
     tooltip = document.createElement('div');
-    tooltip.id = 'json-fmt-tooltip';
+    tooltip.id = 'json-side-tooltip';
     tooltip.style.cssText = `
       position: fixed;
       z-index: 2147483647;
@@ -48,14 +48,22 @@
   }
 
   /**
-   * 检测是否为时间戳
+   * 检测是否为时间戳（严格范围：2000-2100年）
    */
   function isTimestamp(str) {
     const num = parseInt(str, 10);
     if (isNaN(num)) return false;
-    // 10位秒级 或 13位毫秒级
-    return (num > 1000000000 && num < 100000000000) ||
-           (num > 1000000000000 && num < 10000000000000);
+
+    // 时间戳合理范围（2000-01-01 到 2100-01-01）
+    const TS_MIN_SEC = 946684800;     // 2000-01-01 00:00:00 UTC (秒)
+    const TS_MAX_SEC = 4102444800;    // 2100-01-01 00:00:00 UTC (秒)
+
+    // 秒级时间戳
+    if (num > TS_MIN_SEC && num < TS_MAX_SEC) return true;
+    // 毫秒级时间戳
+    if (num > TS_MIN_SEC * 1000 && num < TS_MAX_SEC * 1000) return true;
+
+    return false;
   }
 
   /**
@@ -107,6 +115,10 @@
   let hoverTimer = null;
   let currentTz = 8;
 
+  // X6: 节流相关变量
+  let lastProcessTime = 0;
+  const THROTTLE_INTERVAL = 100; // 100ms 节流间隔
+
   // 初始化时区
   getTimezone().then(tz => currentTz = tz);
 
@@ -117,9 +129,15 @@
     }
   });
 
-  // 监听鼠标悬停
+  // 监听鼠标悬停（X6: 添加节流）
   document.addEventListener('mouseover', (e) => {
     clearTimeout(hoverTimer);
+
+    // X6: 节流检查
+    const now = Date.now();
+    if (now - lastProcessTime < THROTTLE_INTERVAL) {
+      return;
+    }
 
     const el = e.target;
 
@@ -139,6 +157,7 @@
 
     // 延迟显示，避免鼠标快速划过时频繁弹出
     hoverTimer = setTimeout(() => {
+      lastProcessTime = Date.now(); // 更新最后处理时间
       const formatted = formatTimestamp(ts, currentTz);
       const rect = el.getBoundingClientRect();
       showTooltip(rect.left + window.scrollX, rect.bottom + window.scrollY, formatted);
@@ -149,7 +168,7 @@
   document.addEventListener('mouseout', (e) => {
     clearTimeout(hoverTimer);
     // 检查是否移到提示框上
-    if (e.relatedTarget?.id === 'json-fmt-tooltip') return;
+    if (e.relatedTarget?.id === 'json-side-tooltip') return;
     hideTooltip();
   });
 

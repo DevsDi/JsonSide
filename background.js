@@ -1,7 +1,11 @@
 /**
- * JSON Formatter - Background Service Worker
+ * JSON Side - Background Service Worker
  * 处理右键菜单事件，获取选中文本并打开格式化页面
  */
+
+// 历史记录限制
+const MAX_HISTORY = 50;
+const MAX_HISTORY_ITEM_SIZE = 100 * 1024; // 100KB
 
 // 扩展安装时创建右键菜单
 chrome.runtime.onInstalled.addListener(() => {
@@ -10,7 +14,6 @@ chrome.runtime.onInstalled.addListener(() => {
     title: '格式化 JSON',
     contexts: ['selection'] // 仅在选中文本时显示
   });
-  console.log('JSON Formatter: 右键菜单已创建');
 });
 
 // 监听右键菜单点击事件
@@ -21,7 +24,19 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   const selectedText = info.selectionText;
 
   if (!selectedText || selectedText.trim() === '') {
-    console.log('JSON Formatter: 未选中文本');
+    return;
+  }
+
+  // V4: 限制单条历史记录大小
+  if (selectedText.length > MAX_HISTORY_ITEM_SIZE) {
+    // 超过大小限制，直接打开格式化页面但不保存历史
+    try {
+      await chrome.storage.local.set({ jsonText: selectedText });
+      const popupUrl = chrome.runtime.getURL('popup.html');
+      await chrome.tabs.create({ url: popupUrl });
+    } catch (error) {
+      // 静默处理错误
+    }
     return;
   }
 
@@ -43,7 +58,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       preview: selectedText.substring(0, 60).replace(/\n/g, ' ')
     });
 
-    await chrome.storage.local.set({ history: history.slice(0, 50) });
+    await chrome.storage.local.set({ history: history.slice(0, MAX_HISTORY) });
 
     // 将选中文本存储到 storage
     await chrome.storage.local.set({ jsonText: selectedText });
@@ -51,10 +66,8 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     // 在新标签页打开主页（popup.html）
     const popupUrl = chrome.runtime.getURL('popup.html');
     await chrome.tabs.create({ url: popupUrl });
-
-    console.log('JSON Formatter: 已打开格式化页面');
   } catch (error) {
-    console.error('JSON Formatter: 处理失败', error);
+    // V2: 移除调试日志，避免泄露敏感数据
   }
 });
 
