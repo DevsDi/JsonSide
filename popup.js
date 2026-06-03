@@ -924,11 +924,79 @@ async function updateLicenseButton() {
   if (isPro) {
     btn.textContent = 'Pro';
     btn.classList.add('activated');
-    btn.onclick = null;
+    // 点击 PRO 按钮显示打赏弹窗
+    btn.onclick = () => showDonateDialog();
   } else {
     btn.textContent = 'Activate';
     btn.classList.remove('activated');
     btn.onclick = () => showProDialog();
+  }
+}
+
+/**
+ * 显示打赏弹窗（已激活用户点击 PRO 按钮）
+ */
+function showDonateDialog() {
+  const overlay = document.getElementById('proOverlay');
+  if (!overlay) return;
+
+  // 隐藏所有其他区域
+  const unactivatedEl = document.getElementById('proUnactivated');
+  const loadingEl = document.getElementById('proLoading');
+  const successEl = document.getElementById('proSuccess');
+  const closeBtnX = document.getElementById('closeProBtn');
+
+  if (unactivatedEl) unactivatedEl.style.display = 'none';
+  if (loadingEl) loadingEl.style.display = 'none';
+  if (successEl) successEl.style.display = 'none';
+  if (closeBtnX) closeBtnX.style.display = 'none';
+
+  // 显示 activated 容器，但隐藏激活相关内容，只显示打赏
+  const activatedEl = document.getElementById('proActivated');
+  if (activatedEl) {
+    activatedEl.style.display = 'block';
+
+    // 隐藏激活码相关内容
+    const header = document.getElementById('activatedHeader');
+    const title = document.getElementById('activatedTitle');
+    const keyBox = document.getElementById('keyDisplayBox');
+    const inputWrap = document.getElementById('activatedInputWrap');
+    const confirmBtn = document.getElementById('confirmActivateBtn');
+    const resultConfirm = document.getElementById('licenseResultConfirm');
+
+    if (header) header.style.display = 'none';
+    if (title) title.style.display = 'none';
+    if (keyBox) keyBox.style.display = 'none';
+    if (inputWrap) inputWrap.style.display = 'none';
+    if (confirmBtn) confirmBtn.style.display = 'none';
+    if (resultConfirm) resultConfirm.style.display = 'none';
+
+    // 显示打赏区域
+    const donateSection = document.getElementById('donateSection');
+    if (donateSection) donateSection.style.display = 'block';
+  }
+
+  // 显示 Close 按钮
+  document.getElementById('closeProBtn2').style.display = 'block';
+
+  // 绑定打赏按钮
+  document.querySelectorAll('.donate-btn').forEach(donateBtn => {
+    donateBtn.onclick = () => {
+      const amount = donateBtn.dataset.amount;
+      let url = 'https://paypal.me/DevinDai';
+      if (amount === '1') url = 'https://paypal.me/DevinDai/1';
+      else if (amount === '2') url = 'https://paypal.me/DevinDai/2';
+      else if (amount === '5') url = 'https://paypal.me/DevinDai/5';
+      chrome.tabs.create({ url });
+    };
+  });
+
+  overlay.style.display = 'flex';
+
+  // 绑定关闭按钮
+  const closeBtn2 = document.getElementById('closeProBtn2');
+  if (closeBtn2) {
+    closeBtn2.onclick = () => { overlay.style.display = 'none'; };
   }
 }
 
@@ -1012,7 +1080,20 @@ async function showProDialog(reason = null) {
     const keyEl = document.getElementById('displayKey');
     if (keyEl) keyEl.classList.add('revealed');
 
-    // 已激活状态，隐藏输入框
+    // 恢复显示所有激活相关元素（以防从打赏弹窗切换过来）
+    const header = document.getElementById('activatedHeader');
+    const title = document.getElementById('activatedTitle');
+    const keyBox = document.getElementById('keyDisplayBox');
+    const inputWrap = document.getElementById('activatedInputWrap');
+    const donateSection = document.getElementById('donateSection');
+
+    if (header) header.style.display = 'block';
+    if (title) title.style.display = 'block';
+    if (keyBox) keyBox.style.display = 'flex';
+    if (inputWrap) inputWrap.style.display = 'block';
+    if (donateSection) donateSection.style.display = 'block';
+
+    // 已激活状态，隐藏输入框和激活按钮
     const confirmInput = document.getElementById('licenseInputConfirm');
     if (confirmInput) confirmInput.style.display = 'none';
 

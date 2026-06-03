@@ -59,6 +59,20 @@ A simple and efficient Chrome/Edge browser extension for JSON formatting, diff c
 - **Click to convert**: Click timestamp numbers in formatted results for one-click conversion
 - **Timezone selection**: Supports 24 global timezones
 
+## Highlights
+
+### 🆓 Free Pro Activation
+
+One-click to get a free license key and enjoy all Pro features forever - unlimited diff comparisons, unlimited format time, 2MB file size limit, and 100 history records.
+
+### 🔍 Smart JSON Diff
+
+Side-by-side comparison with triple-color highlighting: green for added, red for deleted, orange for modified. Supports large files up to 2MB.
+
+### ⚡ Right-Click to Format
+
+Select any JSON text on a webpage, right-click "Format JSON" to instantly view formatted result - no need to open the extension.
+
 ## Free vs Pro
 
 | Feature | Free | Pro |
@@ -73,7 +87,14 @@ A simple and efficient Chrome/Edge browser extension for JSON formatting, diff c
 | JSON compact/escape | ✓ | ✓ |
 | Timestamp hover | ✓ | ✓ |
 | Timezone selection | ✓ | ✓ |
-| **Price** | Free | **Free** (limited time) |
+| **Price** | Free | **Free** |
+
+### How to Get Pro
+
+1. Click the "Activate" button in the extension header
+2. Click "Get Free License" to generate a license key
+3. Enter the displayed key and click "Activate"
+4. Enjoy unlimited Pro features!
 
 ## Installation
 
@@ -155,7 +176,9 @@ A simple and efficient Chrome/Edge browser extension for JSON formatting, diff c
 ├── background.js     # Service Worker, handles context menu
 ├── content.js        # Content script, timestamp hover tooltip
 ├── popup.html        # Main interface
-└── popup.js          # Main logic
+├── popup.js          # Main logic
+├── license.html      # License activation page
+└── license.js        # License activation logic
 ```
 
 ## Tech Stack
