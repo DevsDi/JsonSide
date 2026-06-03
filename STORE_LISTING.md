@@ -2,37 +2,37 @@
 
 ## Short Description (132 characters max)
 
-JSON formatter, diff comparison, and converter - Right-click any JSON to format instantly. 100% Free Pro features!
+JSON formatter and toolkit - Format, compare, convert, and query JSON data with one click.
 
 ## Detailed Description
 
-**JSON Side** - The must-have JSON toolkit for developers, API testers, and data analysts.
+**JSON Side** - A dedicated JSON toolkit for developers.
 
-### 🚀 Why Install JSON Side?
+### 🎯 Single Purpose
 
-**Stop wasting time with messy JSON!** Whether you're debugging API responses, analyzing data, or working with configuration files, JSON Side makes your life easier with one-click formatting and powerful comparison tools.
+JSON Side does one thing and does it well: **help you work with JSON data**.
 
-### ✨ What Can You Do?
+Whether you need to format messy JSON, compare two JSON files, convert JSON to TypeScript/Go/YAML, or query specific data with JSON Path - this extension handles all your JSON needs in one place.
 
-**📌 Format JSON Instantly**
-- Right-click any JSON text on a webpage → "Format JSON" → Done!
-- Clean, syntax-highlighted output with collapsible sections
-- Automatically detects and converts timestamps to readable dates
+### ✨ Core Features
 
-**🔍 Compare JSON with Ease**
-- Side-by-side diff comparison with color-coded changes
+**📌 Format JSON**
+- Right-click any JSON → "Format JSON" → Done!
+- Syntax highlighting with collapsible sections
+- Automatic timestamp conversion
+
+**🔍 Compare JSON**
+- Side-by-side diff with color-coded changes
 - Green = Added | Red = Deleted | Orange = Modified
-- Perfect for API response comparison and debugging
 
-**🔄 Convert to Any Format**
+**🔄 Convert JSON**
 - JSON → TypeScript interfaces
 - JSON → Go structs
 - JSON → YAML
-- One click to copy results
 
-**🔗 Query with JSON Path**
-- Extract specific data using powerful JSON Path syntax
-- Examples: `$.store.book[0].title`, `$..author`
+**🔗 Query JSON**
+- Extract data using JSON Path syntax
+- Example: `$.store.book[0].title`
 
 ### 🎁 100% Free Pro Features!
 

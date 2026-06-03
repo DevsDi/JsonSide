@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "JSON Side",
+  "name": "JSON Side - JSON Formatter & Tools",
   "version": "1.0.0",
-  "description": "JSON formatter, diff, converter and query tool - Select JSON text on any page, right-click to format in a new tab",
+  "description": "A dedicated JSON toolkit - Format, compare, convert, and query JSON data. Right-click any JSON text to format instantly.",
   "permissions": [
     "contextMenus",
     "storage",
@@ -13,7 +13,6 @@
   },
   "action": {
     "default_title": "JSON Side",
-    "default_popup": "popup.html",
     "default_icon": {
       "16": "icon16.png",
       "48": "icon48.png",
