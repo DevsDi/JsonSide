@@ -1354,15 +1354,7 @@ function collectDiffs(a, b, path = '', depth = 0) {
     return result;
   }
 
-  // 基本类型
-  if (typeA !== 'object') {
-    if (a !== b) {
-      result.mod.add(path);
-    }
-    return result;
-  }
-
-  // 数组
+  // 数组（必须在基本类型检查之前）
   if (typeA === 'array') {
     const maxLen = Math.max(a.length, b.length);
     for (let i = 0; i < maxLen; i++) {
@@ -1371,6 +1363,14 @@ function collectDiffs(a, b, path = '', depth = 0) {
       result.add = new Set([...result.add, ...sub.add]);
       result.del = new Set([...result.del, ...sub.del]);
       result.mod = new Set([...result.mod, ...sub.mod]);
+    }
+    return result;
+  }
+
+  // 基本类型
+  if (typeA !== 'object') {
+    if (a !== b) {
+      result.mod.add(path);
     }
     return result;
   }
