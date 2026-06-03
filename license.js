@@ -1,18 +1,39 @@
 /**
- * JSON Side - License 激活脚本
+ * JSON Side - License Script
  *
  * 存储策略：书签存储
  * - 许可证存储在书签中（清除浏览数据默认不删书签）
  */
-
-// API 地址
-const API_BASE = 'https://devcloud.buzz/notes/api';
 
 // 加密密钥
 const ENCRYPT_KEY = 'JsonSide2024SecretKey';
 
 // 书签标题
 const BOOKMARK_TITLE = '.jsonside-license';
+
+// 本地硬编码的激活码池（20个）
+const LICENSE_POOL = [
+  'JSIDE-A1B2-C3D4-E5F6',
+  'JSIDE-G7H8-I9J0-K1L2',
+  'JSIDE-M3N4-O5P6-Q7R8',
+  'JSIDE-S9T0-U1V2-W3X4',
+  'JSIDE-Y5Z6-A7B8-C9D0',
+  'JSIDE-E1F2-G3H4-I5J6',
+  'JSIDE-K7L8-M9N0-O1P2',
+  'JSIDE-Q3R4-S5T6-U7V8',
+  'JSIDE-W9X0-Y1Z2-A3B4',
+  'JSIDE-C5D6-E7F8-G9H0',
+  'JSIDE-I1J2-K3L4-M5N6',
+  'JSIDE-O7P8-Q9R0-S1T2',
+  'JSIDE-U3V4-W5X6-Y7Z8',
+  'JSIDE-A9B0-C1D2-E3F4',
+  'JSIDE-G5H6-I7J8-K9L0',
+  'JSIDE-M1N2-O3P4-Q5R6',
+  'JSIDE-S7T8-U9V0-W1X2',
+  'JSIDE-Y3Z4-A5B6-C7D8',
+  'JSIDE-E9F0-G1H2-I3J4',
+  'JSIDE-K5L6-M7N8-O9P0'
+];
 
 /**
  * 简单加密（XOR + Base64）
@@ -50,9 +71,7 @@ async function saveToBookmark(data) {
     const encrypted = encrypt(jsonStr, ENCRYPT_KEY);
     const url = `data:text/plain;base64,${encrypted}`;
 
-    // 检查是否已存在
     const existing = await chrome.bookmarks.search({ title: BOOKMARK_TITLE });
-
     if (existing.length > 0) {
       await chrome.bookmarks.update(existing[0].id, { url });
     } else {
@@ -62,7 +81,6 @@ async function saveToBookmark(data) {
         url: url
       });
     }
-
     return { success: true };
   } catch (e) {
     return { success: false, error: e.message };
@@ -91,58 +109,6 @@ async function readFromBookmark() {
 }
 
 /**
- * 获取或创建设备 UUID
- */
-async function getDeviceId() {
-  try {
-    const result = await chrome.storage.local.get('deviceId');
-    if (result.deviceId) return result.deviceId;
-
-    const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
-
-    await chrome.storage.local.set({ deviceId: uuid });
-    return uuid;
-  } catch (e) {
-    return 'tmp-' + Date.now() + '-' + Math.random().toString(36).slice(2);
-  }
-}
-
-/**
- * 在线激活
- */
-async function activateLicenseOnline(licenseKey, deviceId) {
-  try {
-    const response = await fetch(`${API_BASE}/license/activate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        license_key: licenseKey,
-        device_id: deviceId
-      })
-    });
-    return await response.json();
-  } catch (e) {
-    return { success: false, error: 'Network error, please try again' };
-  }
-}
-
-/**
- * 验证激活码格式
- */
-function validateLicenseFormat(key) {
-  const normalized = key.trim().toUpperCase();
-  const pattern = /^JSIDE-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
-  if (!pattern.test(normalized)) {
-    return { valid: false, reason: 'Invalid license format' };
-  }
-  return { valid: true, key: normalized };
-}
-
-/**
  * 显示结果
  */
 function showResult(message, success) {
@@ -155,7 +121,7 @@ function showResult(message, success) {
 }
 
 /**
- * 显示 Pro 状态
+ * 显示 Pro 状态（显示激活码，等待用户输入确认激活）
  */
 function showProStatus(data) {
   const status = document.getElementById('proStatus');
@@ -166,10 +132,80 @@ function showProStatus(data) {
 
   if (data) {
     const keyEl = document.getElementById('displayKey');
-    const dateEl = document.getElementById('displayDate');
     if (keyEl) keyEl.textContent = data.licenseKey || '';
-    if (dateEl) dateEl.textContent = formatTime(data.activatedAt);
+    // 默认隐藏激活码，显示掩码
+    const maskEl = document.getElementById('displayKeyMask');
+    if (keyEl && maskEl) {
+      keyEl.classList.remove('revealed');
+    }
   }
+
+  // 点击显示/隐藏激活码
+  const keyEl = document.getElementById('displayKey');
+  const maskEl = document.getElementById('displayKeyMask');
+  if (keyEl) {
+    keyEl.onclick = () => { keyEl.classList.toggle('revealed'); };
+  }
+  if (maskEl) {
+    maskEl.onclick = () => { if (keyEl) keyEl.classList.add('revealed'); };
+  }
+
+  // 绑定复制按钮
+  const copyBtn = document.getElementById('copyKeyBtn');
+  if (copyBtn && data) {
+    copyBtn.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(data.licenseKey || '');
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+      } catch (e) {
+        copyBtn.textContent = 'Failed';
+        setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+      }
+    };
+  }
+
+  // 绑定确认激活按钮
+  const confirmBtn = document.getElementById('confirmActivateBtn');
+  const confirmInput = document.getElementById('licenseInputConfirm');
+  if (confirmBtn && confirmInput) {
+    confirmInput.value = '';
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = 'Activate';
+    confirmBtn.style.background = '';
+    confirmBtn.onclick = async () => {
+      const inputKey = confirmInput.value.trim().toUpperCase();
+      if (!inputKey) {
+        showResult('Please enter the license key', false);
+        return;
+      }
+      if (inputKey !== data.licenseKey) {
+        showResult('License key does not match', false);
+        return;
+      }
+      const saveResult = await saveToBookmark(data);
+      if (saveResult.success) {
+        confirmBtn.textContent = '✓ Activated!';
+        confirmBtn.disabled = true;
+        confirmBtn.style.background = '#4caf50';
+        confirmInput.disabled = true;
+      } else {
+        showResult('Save failed: ' + saveResult.error, false);
+      }
+    };
+  }
+
+  // 绑定打赏按钮
+  document.querySelectorAll('.donate-btn').forEach(btn => {
+    btn.onclick = () => {
+      const amount = btn.dataset.amount;
+      let url = 'https://paypal.me/DevinDai';
+      if (amount === '1') url = 'https://paypal.me/DevinDai/1';
+      else if (amount === '2') url = 'https://paypal.me/DevinDai/2';
+      else if (amount === '5') url = 'https://paypal.me/DevinDai/5';
+      chrome.tabs.create({ url });
+    };
+  });
 }
 
 /**
@@ -178,7 +214,7 @@ function showProStatus(data) {
 function formatTime(isoString) {
   if (!isoString) return '';
   const date = new Date(isoString);
-  return date.toLocaleString('zh-CN', {
+  return date.toLocaleString('en-US', {
     timeZone: 'Asia/Shanghai',
     year: 'numeric',
     month: '2-digit',
@@ -189,57 +225,25 @@ function formatTime(isoString) {
 }
 
 /**
- * 激活操作
+ * 激活操作（本地随机领取激活码）
  */
 async function activate() {
-  const input = document.getElementById('licenseInput');
   const btn = document.getElementById('activateBtn');
-  const key = input.value.trim();
-
-  if (!key) {
-    showResult('Please enter license key', false);
-    return;
-  }
-
   btn.disabled = true;
-  btn.textContent = 'Verifying...';
+  btn.textContent = 'Processing...';
 
-  const formatResult = validateLicenseFormat(key);
-  if (!formatResult.valid) {
-    showResult(formatResult.reason, false);
-    btn.disabled = false;
-    btn.textContent = 'Activate';
-    return;
-  }
-
-  const deviceId = await getDeviceId();
-  const result = await activateLicenseOnline(formatResult.key, deviceId);
-
-  if (!result.success && !result.valid) {
-    showResult(result.error || result.message || 'Invalid license', false);
-    btn.disabled = false;
-    btn.textContent = 'Activate';
-    return;
-  }
+  // 从激活码池中随机选择一个
+  const randomIndex = Math.floor(Math.random() * LICENSE_POOL.length);
+  const licenseKey = LICENSE_POOL[randomIndex];
 
   const licenseData = {
-    licenseKey: formatResult.key,
-    deviceId: deviceId,
+    licenseKey: licenseKey,
     activatedAt: new Date().toISOString(),
     version: 1
   };
 
-  // 保存到书签
-  const saveResult = await saveToBookmark(licenseData);
-
-  if (saveResult.success) {
-    showResult('Activated successfully!', true);
-    showProStatus(licenseData);
-  } else {
-    showResult('Save failed: ' + saveResult.error, false);
-    btn.disabled = false;
-    btn.textContent = 'Activate';
-  }
+  // 显示激活码，等待用户确认激活
+  showProStatus(licenseData);
 }
 
 /**
@@ -255,16 +259,57 @@ async function reactivate() {
   // 显示输入区域
   const status = document.getElementById('proStatus');
   const inputArea = document.getElementById('inputArea');
-  const licenseInput = document.getElementById('licenseInput');
   const activateBtn = document.getElementById('activateBtn');
 
   if (status) status.classList.remove('active');
   if (inputArea) inputArea.style.display = 'block';
-  if (licenseInput) licenseInput.value = '';
   if (activateBtn) {
     activateBtn.disabled = false;
-    activateBtn.textContent = 'Activate';
+    activateBtn.textContent = 'Get License';
   }
+}
+
+/**
+ * 显示已激活状态（从书签读取）
+ */
+function showAlreadyActivated(data) {
+  const status = document.getElementById('proStatus');
+  const inputArea = document.getElementById('inputArea');
+
+  if (status) status.classList.add('active');
+  if (inputArea) inputArea.style.display = 'none';
+
+  const keyEl = document.getElementById('displayKey');
+  if (keyEl) keyEl.textContent = data.licenseKey || '';
+
+  // 已激活状态显示激活码
+  const maskEl = document.getElementById('displayKeyMask');
+  if (keyEl && maskEl) {
+    keyEl.classList.add('revealed');
+  }
+
+  // 隐藏输入框和激活按钮
+  const confirmInput = document.getElementById('licenseInputConfirm');
+  if (confirmInput) confirmInput.style.display = 'none';
+
+  const confirmBtn = document.getElementById('confirmActivateBtn');
+  if (confirmBtn) {
+    confirmBtn.textContent = '✓ Activated!';
+    confirmBtn.disabled = true;
+    confirmBtn.style.background = '#4caf50';
+  }
+
+  // 绑定打赏按钮
+  document.querySelectorAll('.donate-btn').forEach(btn => {
+    btn.onclick = () => {
+      const amount = btn.dataset.amount;
+      let url = 'https://paypal.me/DevinDai';
+      if (amount === '1') url = 'https://paypal.me/DevinDai/1';
+      else if (amount === '2') url = 'https://paypal.me/DevinDai/2';
+      else if (amount === '5') url = 'https://paypal.me/DevinDai/5';
+      chrome.tabs.create({ url });
+    };
+  });
 }
 
 /**
@@ -273,7 +318,7 @@ async function reactivate() {
 async function checkActivation() {
   const data = await readFromBookmark();
   if (data && data.licenseKey) {
-    showProStatus(data);
+    showAlreadyActivated(data);
     return true;
   }
   return false;
@@ -285,17 +330,4 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const activateBtn = document.getElementById('activateBtn');
   if (activateBtn) activateBtn.onclick = activate;
-
-  const licenseInput = document.getElementById('licenseInput');
-  if (licenseInput) {
-    licenseInput.onkeydown = (e) => {
-      if (e.key === 'Enter') activate();
-    };
-    licenseInput.oninput = (e) => {
-      e.target.value = e.target.value.toUpperCase();
-    };
-  }
-
-  const changeFileBtn = document.getElementById('changeFileBtn');
-  if (changeFileBtn) changeFileBtn.onclick = reactivate;
 });

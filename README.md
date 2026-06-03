@@ -1,154 +1,170 @@
 # JSON Side
 
-一个简洁高效的 Chrome/Edge 浏览器扩展，用于格式化 JSON 数据、对比 JSON 差异和 JSON 类型转换。
+A simple and efficient Chrome/Edge browser extension for JSON formatting, diff comparison, and type conversion.
 
-## 功能特性
+## Features
 
-### 📝 JSON 格式化
+### 📝 JSON Formatting
 
-- 右键菜单快速格式化：选中网页上的 JSON 文本，右键点击"格式化 JSON"即可在新标签页查看美化结果
-- 语法高亮：键、字符串、数字、布尔值、null 采用不同颜色显示
-- 可折叠展开：对象和数组支持折叠，方便查看大型 JSON
-- 时间戳转换：自动识别时间戳，点击可转换为可读日期时间
+- **Right-click to format**: Select JSON text on any webpage, right-click "Format JSON" to view formatted result in a new tab
+- **Syntax highlighting**: Keys, strings, numbers, booleans, and null are displayed in different colors
+- **Collapsible**: Objects and arrays can be collapsed for easier viewing of large JSON
+- **Timestamp conversion**: Automatically identifies timestamps, click to convert to readable date/time
 
-### 🔍 JSON Diff 对比
+### 🔍 JSON Diff
 
-- 双栏对比：左右两侧分别粘贴 JSON，一键对比差异
-- 差异高亮：
-  - 🟢 绿色：新增内容
-  - 🔴 红色：删除内容
-  - 🟠 橙色：修改内容
-- 统计显示：自动统计新增、删除、修改的数量
-- 支持编辑：粘贴后可直接编辑，点击 Compare 按钮重新对比
+- **Side-by-side comparison**: Paste JSON on left and right panels, one-click to compare differences
+- **Diff highlighting**:
+  - 🟢 Green: Added content
+  - 🔴 Red: Deleted content
+  - 🟠 Orange: Modified content
+- **Statistics display**: Automatically counts additions, deletions, and modifications
+- **Editable**: Paste and edit directly, click Compare button to re-compare
 
-### 🔄 JSON 类型转换
+### 🔄 JSON Type Conversion
 
-- **TypeScript 接口生成**：根据 JSON 自动生成 TypeScript interface 定义
-- **Go struct 生成**：根据 JSON 自动生成 Go 语言结构体定义
-- **YAML 转换**：将 JSON 转换为 YAML 格式
-- 实时预览：输入 JSON 后自动显示转换结果
-- 一键复制：快速复制转换结果
+- **TypeScript interface generation**: Automatically generate TypeScript interface definitions from JSON
+- **Go struct generation**: Automatically generate Go struct definitions from JSON
+- **YAML conversion**: Convert JSON to YAML format
+- **Real-time preview**: Automatically displays conversion results after entering JSON
+- **One-click copy**: Quickly copy conversion results
 
-### 🔗 JSON Path 查询
+### 🔗 JSON Path Query
 
-- 支持标准 JSON Path 语法
-- 属性访问：`$.store.book`
-- 数组索引：`$[0]`、`$[-1]`（支持负索引）
-- 递归下降：`$..title`（查找所有 title 属性）
-- 通配符：`$[*]`、`$.*`（获取所有元素/属性）
-- 多索引：`$[0,2,4]`（获取多个指定索引）
-- 实时查询：输入路径自动显示结果
+- Supports standard JSON Path syntax
+- Property access: `$.store.book`
+- Array index: `$[0]`, `$[-1]` (supports negative index)
+- Recursive descent: `$..title` (find all title properties)
+- Wildcard: `$[*]`, `$.*` (get all elements/properties)
+- Multi-index: `$[0,2,4]` (get multiple specified indices)
+- Real-time query: Automatically displays results when entering path
 
-### 📦 JSON 压缩/转义
+### 📦 JSON Compact/Escape
 
-- **压缩**：将格式化的 JSON 压缩成一行（去除空格换行）
-- **转义**：将 JSON 转义为字符串（用于嵌入代码或配置文件）
-- **反转义**：将转义的 JSON 字符串还原为格式化 JSON
-- 一键复制：快速复制处理结果
+- **Compact**: Compress formatted JSON to a single line (remove spaces and line breaks)
+- **Escape**: Escape JSON as a string (for embedding in code or config files)
+- **Unescape**: Restore escaped JSON string to formatted JSON
+- **One-click copy**: Quickly copy processed results
 
-### 📜 历史记录
+### 📜 History
 
-- 自动保存：格式化的 JSON 自动保存到本地历史记录
-- 来源标记：区分右键菜单和手动输入的记录
-- 时区支持：时间显示支持全球 24 个时区
-- 快速加载：点击历史记录可快速加载并格式化
+- **Auto-save**: Formatted JSON is automatically saved to local history
+- **Source marking**: Distinguish between right-click menu and manual input
+- **Timezone support**: Time display supports 24 global timezones
+- **Quick load**: Click history record to quickly load and format
 
-### ⏰ 时间戳支持
+### ⏰ Timestamp Support
 
-- 悬停提示：在任意网页上悬停时间戳数字，自动显示格式化时间
-- 点击转换：在格式化结果中点击时间戳数字，一键转换
-- 时区选择：支持全球 24 个时区
+- **Hover tooltip**: Hover over timestamp numbers on any webpage to see formatted time
+- **Click to convert**: Click timestamp numbers in formatted results for one-click conversion
+- **Timezone selection**: Supports 24 global timezones
 
-## 安装方法
+## Free vs Pro
+
+| Feature | Free | Pro |
+|---------|------|-----|
+| Diff comparisons | 3 per day | Unlimited |
+| Diff size limit | 10KB | 2MB |
+| Format Time | 3 per day | Unlimited |
+| History records | 10 | 100 |
+| JSON formatting | ✓ | ✓ |
+| JSON conversion | ✓ | ✓ |
+| JSON Path query | ✓ | ✓ |
+| JSON compact/escape | ✓ | ✓ |
+| Timestamp hover | ✓ | ✓ |
+| Timezone selection | ✓ | ✓ |
+| **Price** | Free | **Free** (limited time) |
+
+## Installation
 
 ### Chrome
 
-1. 打开 Chrome，访问 `chrome://extensions/`
-2. 开启右上角"开发者模式"
-3. 点击"加载已解压的扩展程序"
-4. 选择本项目文件夹
+1. Open Chrome and go to `chrome://extensions/`
+2. Enable "Developer mode" in the top right
+3. Click "Load unpacked"
+4. Select this project folder
 
 ### Edge
 
-1. 打开 Edge，访问 `edge://extensions/`
-2. 开启左下角"开发人员模式"
-3. 点击"加载解压缩的扩展"
-4. 选择本项目文件夹
+1. Open Edge and go to `edge://extensions/`
+2. Enable "Developer mode" in the bottom left
+3. Click "Load unpacked"
+4. Select this project folder
 
-## 使用说明
+## Usage
 
-### 格式化模式
+### Format Mode
 
-1. 点击扩展图标或右键菜单选择"格式化 JSON"
-2. 在左侧输入框粘贴 JSON 文本
-3. 点击"格式化"按钮或按 `Ctrl + Enter`
-4. 右侧显示格式化结果
-5. 点击时间戳数字可转换为日期时间
+1. Click the extension icon or right-click and select "Format JSON"
+2. Paste JSON text in the left input box
+3. Click "Format" button or press `Ctrl + Enter`
+4. View formatted result on the right
+5. Click timestamp numbers to convert to date/time
 
-### Diff 模式
+### Diff Mode
 
-1. 点击工具栏的"Diff"按钮切换到对比模式
-2. 在左侧粘贴 JSON A
-3. 在右侧粘贴 JSON B
-4. 点击"Compare"按钮进行对比
-5. 差异部分会自动高亮显示
-6. 点击"Swap"可交换两侧内容
-7. 点击"Clear"清空所有内容
+1. Click "Diff" button in toolbar to switch to comparison mode
+2. Paste JSON A on the left
+3. Paste JSON B on the right
+4. Click "Compare" button to compare
+5. Differences are automatically highlighted
+6. Click "Swap" to swap left and right content
+7. Click "Clear" to clear all content
 
-### 转换模式
+### Convert Mode
 
-1. 点击工具栏的"转换"按钮切换到转换模式
-2. 在左侧输入框粘贴 JSON 文本
-3. 右侧自动显示转换结果
-4. 点击"TypeScript"、"Go struct"、"YAML"标签切换转换类型
-5. 点击"复制"按钮复制转换结果
+1. Click "Convert" button in toolbar to switch to convert mode
+2. Paste JSON text in the left input box
+3. View conversion result on the right automatically
+4. Click "TypeScript", "Go struct", "YAML" tabs to switch conversion type
+5. Click "Copy" button to copy conversion result
 
-### JSON Path 模式
+### JSON Path Mode
 
-1. 点击工具栏的"Path"按钮切换到查询模式
-2. 在左侧输入框粘贴 JSON 文本
-3. 在右侧输入框输入 JSON Path 表达式
-4. 自动显示查询结果，或按回车/点击"查询"按钮
-5. 支持语法示例：
-   - `$.store.book[0].title` - 获取第一个 book 的 title
-   - `$..title` - 获取所有 title 属性
-   - `$.store.book[*]` - 获取所有 book 元素
-   - `$[0,2,4]` - 获取索引 0、2、4 的元素
+1. Click "Path" button in toolbar to switch to query mode
+2. Paste JSON text in the left input box
+3. Enter JSON Path expression in the right input box
+4. View query results automatically, or press Enter/click "Query" button
+5. Supported syntax examples:
+   - `$.store.book[0].title` - Get title of first book
+   - `$..title` - Get all title properties
+   - `$.store.book[*]` - Get all book elements
+   - `$[0,2,4]` - Get elements at indices 0, 2, 4
 
-### 压缩/转义模式
+### Compact/Escape Mode
 
-1. 点击工具栏的"压缩"按钮切换到处理模式
-2. 在左侧输入框粘贴 JSON 文本
-3. 点击对应按钮执行操作：
-   - **压缩**：去除空格换行，输出单行 JSON
-   - **转义**：将 JSON 转义为字符串格式
-   - **反转义**：将转义字符串还原为格式化 JSON
-4. 点击"复制结果"复制处理后的内容
+1. Click "Compact" button in toolbar to switch to process mode
+2. Paste JSON text in the left input box
+3. Click corresponding button to execute operation:
+   - **Compact**: Remove spaces and line breaks, output single-line JSON
+   - **Escape**: Escape JSON to string format
+   - **Unescape**: Restore escaped string to formatted JSON
+4. Click "Copy" to copy processed content
 
-### 历史记录
+### History
 
-1. 点击工具栏的"历史"按钮打开侧边栏
-2. 点击任意历史记录可加载并格式化
-3. 点击"删除"按钮删除单条记录
-4. 点击"清空全部"删除所有历史记录
+1. Click "History" button in toolbar to open sidebar
+2. Click any history record to load and format
+3. Click "Delete" button to delete single record
+4. Click "Clear All" to delete all history records
 
-## 文件结构
+## File Structure
 
 ```
-├── manifest.json     # 扩展配置文件
-├── background.js     # Service Worker，处理右键菜单
-├── content.js        # 内容脚本，时间戳悬停提示
-├── popup.html        # 主界面
-└── popup.js          # 主逻辑
+├── manifest.json     # Extension configuration
+├── background.js     # Service Worker, handles context menu
+├── content.js        # Content script, timestamp hover tooltip
+├── popup.html        # Main interface
+└── popup.js          # Main logic
 ```
 
-## 技术栈
+## Tech Stack
 
-- 原生 JavaScript（无框架依赖）
+- Vanilla JavaScript (no framework dependencies)
 - Chrome Extension Manifest V3
-- CSS Grid 布局
-- 深色主题 UI
+- CSS Grid layout
+- Dark theme UI
 
-## 许可证
+## License
 
 MIT License

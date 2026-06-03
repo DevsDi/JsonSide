@@ -8,8 +8,29 @@ const FREE_DIFF_SIZE = 10 * 1024;       // 免费版最大 10KB
 const PRO_DIFF_SIZE = 2 * 1024 * 1024;  // Pro 版最大 2MB
 const FREE_FORMAT_TS_LIMIT = 3;         // 每日免费格式化时间次数
 
-// API 地址
-const API_BASE = 'https://devcloud.buzz/notes/api';
+// 本地硬编码的激活码池（20个）
+const LICENSE_POOL = [
+  'JSIDE-A1B2-C3D4-E5F6',
+  'JSIDE-G7H8-I9J0-K1L2',
+  'JSIDE-M3N4-O5P6-Q7R8',
+  'JSIDE-S9T0-U1V2-W3X4',
+  'JSIDE-Y5Z6-A7B8-C9D0',
+  'JSIDE-E1F2-G3H4-I5J6',
+  'JSIDE-K7L8-M9N0-O1P2',
+  'JSIDE-Q3R4-S5T6-U7V8',
+  'JSIDE-W9X0-Y1Z2-A3B4',
+  'JSIDE-C5D6-E7F8-G9H0',
+  'JSIDE-I1J2-K3L4-M5N6',
+  'JSIDE-O7P8-Q9R0-S1T2',
+  'JSIDE-U3V4-W5X6-Y7Z8',
+  'JSIDE-A9B0-C1D2-E3F4',
+  'JSIDE-G5H6-I7J8-K9L0',
+  'JSIDE-M1N2-O3P4-Q5R6',
+  'JSIDE-S7T8-U9V0-W1X2',
+  'JSIDE-Y3Z4-A5B6-C7D8',
+  'JSIDE-E9F0-G1H2-I3J4',
+  'JSIDE-K5L6-M7N8-O9P0'
+];
 
 // ===================== 许可证验证（从书签读取） =====================
 
@@ -913,7 +934,6 @@ async function updateLicenseButton() {
 
 // ===================== Pro 弹窗功能 =====================
 
-const LICENSE_API_BASE = 'https://devcloud.buzz/notes/api';
 const LICENSE_ENCRYPT_KEY = 'JsonSide2024SecretKey';
 const LICENSE_BOOKMARK_TITLE = '.jsonside-license';
 
@@ -954,26 +974,6 @@ async function saveLicenseToBookmark(data) {
 }
 
 /**
- * 获取设备ID
- */
-async function getLicenseDeviceId() {
-  try {
-    const result = await chrome.storage.local.get('deviceId');
-    if (result.deviceId) return result.deviceId;
-
-    const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
-    await chrome.storage.local.set({ deviceId: uuid });
-    return uuid;
-  } catch (e) {
-    return 'tmp-' + Date.now();
-  }
-}
-
-/**
  * 显示 Pro 弹窗
  */
 async function showProDialog(reason = null) {
@@ -995,14 +995,55 @@ async function showProDialog(reason = null) {
     activatedEl.style.display = 'block';
     document.getElementById('displayKey').textContent = data.licenseKey;
     document.getElementById('closeProBtn2').style.display = 'block';
+
+    // 已激活状态显示激活码
+    const keyEl = document.getElementById('displayKey');
+    if (keyEl) keyEl.classList.add('revealed');
+
+    // 已激活状态，隐藏输入框
+    const confirmInput = document.getElementById('licenseInputConfirm');
+    if (confirmInput) confirmInput.style.display = 'none';
+
+    const confirmBtn = document.getElementById('confirmActivateBtn');
+    if (confirmBtn) {
+      confirmBtn.textContent = '✓ Activated!';
+      confirmBtn.disabled = true;
+      confirmBtn.style.background = '#4caf50';
+    }
+
+    // 绑定打赏按钮
+    document.querySelectorAll('.donate-btn').forEach(donateBtn => {
+      donateBtn.onclick = () => {
+        const amount = donateBtn.dataset.amount;
+        let url = 'https://paypal.me/DevinDai';
+        if (amount === '1') url = 'https://paypal.me/DevinDai/1';
+        else if (amount === '2') url = 'https://paypal.me/DevinDai/2';
+        else if (amount === '5') url = 'https://paypal.me/DevinDai/5';
+        chrome.tabs.create({ url });
+      };
+    });
   } else {
     unactivatedEl.style.display = 'block';
     activatedEl.style.display = 'none';
     document.getElementById('closeProBtn2').style.display = 'none';
     reasonEl.textContent = reason || '';
     reasonEl.style.display = reason ? 'block' : 'none';
-    document.getElementById('licenseInput').value = '';
     document.getElementById('licenseResult').style.display = 'none';
+
+    // 重置确认激活按钮和输入框
+    const confirmInput = document.getElementById('licenseInputConfirm');
+    if (confirmInput) {
+      confirmInput.style.display = '';
+      confirmInput.value = '';
+      confirmInput.disabled = false;
+    }
+
+    const confirmBtn = document.getElementById('confirmActivateBtn');
+    if (confirmBtn) {
+      confirmBtn.textContent = 'Activate';
+      confirmBtn.disabled = false;
+      confirmBtn.style.background = 'linear-gradient(135deg, #4caf50 0%, #2e7d32 100%)';
+    }
   }
 
   // 绑定事件
@@ -1020,86 +1061,146 @@ async function showProDialog(reason = null) {
   if (activateBtn) {
     activateBtn.onclick = doActivate;
     activateBtn.disabled = false;
-    activateBtn.textContent = 'Activate';
-  }
-
-  const buyBtn = document.getElementById('buyNowBtn');
-  if (buyBtn) {
-    buyBtn.onclick = () => {
-      chrome.tabs.create({ url: 'https://jsonside.com/buy' });
-    };
-  }
-
-  const input = document.getElementById('licenseInput');
-  if (input) {
-    input.onkeydown = (e) => { if (e.key === 'Enter') doActivate(); };
-    input.oninput = (e) => { e.target.value = e.target.value.toUpperCase(); };
+    activateBtn.textContent = 'Get License';
   }
 }
 
 /**
- * 执行激活
+ * 执行激活（本地随机领取激活码）
  */
 async function doActivate() {
-  const input = document.getElementById('licenseInput');
   const btn = document.getElementById('activateBtn');
 
-  const key = input.value.trim();
-  if (!key) {
-    showLicenseResult('Please enter license key', false);
-    return;
-  }
-
-  const normalized = key.toUpperCase();
-  const pattern = /^JSIDE-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
-  if (!pattern.test(normalized)) {
-    showLicenseResult('Invalid license format', false);
-    return;
-  }
-
   btn.disabled = true;
-  btn.textContent = 'Verifying...';
+  btn.textContent = 'Processing...';
 
   try {
-    const deviceId = await getLicenseDeviceId();
-    const response = await fetch(`${LICENSE_API_BASE}/license/activate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ license_key: normalized, device_id: deviceId })
-    });
-    const result = await response.json();
-
-    if (!result.success && !result.valid) {
-      showLicenseResult(result.error || result.message || 'Invalid license', false);
-      btn.disabled = false;
-      btn.textContent = 'Activate';
-      return;
-    }
+    // 从激活码池中随机选择一个
+    const randomIndex = Math.floor(Math.random() * LICENSE_POOL.length);
+    const licenseKey = LICENSE_POOL[randomIndex];
 
     const licenseData = {
-      licenseKey: normalized,
-      deviceId: deviceId,
+      licenseKey: licenseKey,
       activatedAt: new Date().toISOString(),
       version: 1
     };
 
-    const saveResult = await saveLicenseToBookmark(licenseData);
-    if (saveResult.success) {
-      showLicenseResult('Activated successfully!', true);
-      document.getElementById('proUnactivated').style.display = 'none';
-      document.getElementById('proActivated').style.display = 'block';
-      document.getElementById('displayKey').textContent = normalized;
-      document.getElementById('closeProBtn2').style.display = 'block';
-      await updateLicenseButton();
-    } else {
-      showLicenseResult('Save failed: ' + saveResult.error, false);
-      btn.disabled = false;
-      btn.textContent = 'Activate';
+    // 显示激活码，等待用户确认激活
+    document.getElementById('proUnactivated').style.display = 'none';
+    document.getElementById('proActivated').style.display = 'block';
+    document.getElementById('displayKey').textContent = licenseKey;
+    document.getElementById('closeProBtn2').style.display = 'block';
+
+    // 默认隐藏激活码，点击切换显示
+    const keyEl = document.getElementById('displayKey');
+    const maskEl = document.getElementById('displayKeyMask');
+    if (keyEl) keyEl.classList.remove('revealed');
+
+    if (keyEl) {
+      keyEl.onclick = () => { keyEl.classList.toggle('revealed'); };
     }
+    if (maskEl) {
+      maskEl.onclick = () => { if (keyEl) keyEl.classList.add('revealed'); };
+    }
+
+    // 绑定复制按钮
+    const copyBtn = document.getElementById('copyKeyBtn');
+    if (copyBtn) {
+      copyBtn.onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(licenseKey);
+          copyBtn.textContent = 'Copied!';
+          setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+        } catch (e) {
+          copyBtn.textContent = 'Failed';
+          setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+        }
+      };
+    }
+
+    // 绑定确认激活按钮（需输入激活码）
+    const confirmBtn = document.getElementById('confirmActivateBtn');
+    const confirmInput = document.getElementById('licenseInputConfirm');
+    if (confirmBtn && confirmInput) {
+      confirmInput.value = '';
+      confirmInput.style.display = '';
+      confirmInput.disabled = false;
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = 'Activate';
+      confirmBtn.style.background = 'linear-gradient(135deg, #4caf50 0%, #2e7d32 100%)';
+
+      confirmBtn.onclick = async () => {
+        const inputKey = confirmInput.value.trim().toUpperCase();
+        const resultEl = document.getElementById('licenseResultConfirm');
+        if (!inputKey) {
+          if (resultEl) {
+            resultEl.textContent = 'Please enter the license key';
+            resultEl.style.display = 'block';
+            resultEl.style.background = 'rgba(244,67,54,0.2)';
+            resultEl.style.color = '#f44336';
+            resultEl.style.border = '1px solid #f44336';
+            setTimeout(() => { resultEl.style.display = 'none'; }, 3000);
+          }
+          return;
+        }
+        if (inputKey !== licenseKey) {
+          if (resultEl) {
+            resultEl.textContent = 'License key does not match';
+            resultEl.style.display = 'block';
+            resultEl.style.background = 'rgba(244,67,54,0.2)';
+            resultEl.style.color = '#f44336';
+            resultEl.style.border = '1px solid #f44336';
+            setTimeout(() => { resultEl.style.display = 'none'; }, 3000);
+          }
+          return;
+        }
+        const saveResult = await saveLicenseToBookmark(licenseData);
+        if (saveResult.success) {
+          if (resultEl) {
+            resultEl.textContent = '✓ Activated successfully!';
+            resultEl.style.display = 'block';
+            resultEl.style.background = 'rgba(76,175,50,0.2)';
+            resultEl.style.color = '#4caf50';
+            resultEl.style.border = '1px solid #4caf50';
+          }
+          confirmBtn.textContent = '✓ Activated!';
+          confirmBtn.disabled = true;
+          confirmBtn.style.background = '#4caf50';
+          confirmInput.disabled = true;
+          await updateLicenseButton();
+        } else {
+          if (resultEl) {
+            resultEl.textContent = 'Save failed: ' + saveResult.error;
+            resultEl.style.display = 'block';
+            resultEl.style.background = 'rgba(244,67,54,0.2)';
+            resultEl.style.color = '#f44336';
+            resultEl.style.border = '1px solid #f44336';
+            setTimeout(() => { resultEl.style.display = 'none'; }, 3000);
+          }
+        }
+      };
+
+      // 回车激活
+      confirmInput.onkeydown = (e) => { if (e.key === 'Enter') confirmBtn.onclick(); };
+      confirmInput.oninput = (e) => { e.target.value = e.target.value.toUpperCase(); };
+    }
+
+    // 绑定打赏按钮
+    document.querySelectorAll('.donate-btn').forEach(donateBtn => {
+      donateBtn.onclick = () => {
+        const amount = donateBtn.dataset.amount;
+        let url = 'https://paypal.me/DevinDai';
+        if (amount === '1') url = 'https://paypal.me/DevinDai/1';
+        else if (amount === '2') url = 'https://paypal.me/DevinDai/2';
+        else if (amount === '5') url = 'https://paypal.me/DevinDai/5';
+        chrome.tabs.create({ url });
+      };
+    });
+
   } catch (e) {
-    showLicenseResult('Network error: ' + e.message, false);
+    showLicenseResult('Error: ' + e.message, false);
     btn.disabled = false;
-    btn.textContent = 'Activate';
+    btn.textContent = 'Get License';
   }
 }
 

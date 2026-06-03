@@ -491,6 +491,10 @@
       padding: 4px 8px;
     }
     .upgrade-close:hover { color: #d4d4d4; }
+    #displayKey { display: none; }
+    #displayKeyMask { display: inline; font-family:Consolas,monospace;font-size:18px;color:#4caf50;letter-spacing:2px; }
+    #displayKey.revealed { display: inline; }
+    #displayKey.revealed + #displayKeyMask { display: none; }
   </style>
 </head>
 <body>
@@ -658,7 +662,7 @@
 
   <!-- Pro Dialog -->
   <div id="proOverlay" class="upgrade-overlay" style="display:none;">
-    <div class="upgrade-dialog" style="max-width:400px;padding:28px;">
+    <div class="upgrade-dialog" style="max-width:480px;padding:28px;">
       <button id="closeProBtn" class="upgrade-close">×</button>
       <div class="upgrade-header">
         <span class="upgrade-icon">⭐</span>
@@ -675,23 +679,34 @@
           <div class="feature-item">✓ 100 history items</div>
         </div>
         <div class="upgrade-price-box">
-          <span class="upgrade-price">$9</span>
-          <span class="upgrade-price-note">Lifetime</span>
+          <span class="upgrade-price">FREE</span>
+          <span class="upgrade-price-note">Limited time offer</span>
         </div>
-        <input type="text" id="licenseInput" placeholder="JSIDE-XXXX-XXXX-XXXX" maxlength="20"
-          style="width:100%;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:15px;font-family:Consolas,monospace;text-align:center;letter-spacing:1px;margin-bottom:12px;box-sizing:border-box;">
-        <div style="display:flex;gap:10px;">
-          <button id="activateBtn" style="flex:1;padding:12px;font-size:15px;background:linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);border:none;border-radius:6px;color:#fff;cursor:pointer;font-weight:500;">Activate</button>
-          <button id="buyNowBtn" style="flex:1;padding:12px;font-size:15px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;">Buy</button>
-        </div>
+        <button id="activateBtn" style="width:100%;padding:14px;font-size:16px;background:linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);border:none;border-radius:6px;color:#fff;cursor:pointer;font-weight:500;box-shadow:0 4px 12px rgba(76,175,80,0.3);">Get License</button>
         <div id="licenseResult" style="display:none;margin-top:12px;padding:10px;border-radius:6px;font-size:13px;text-align:center;"></div>
       </div>
 
       <!-- Activated -->
       <div id="proActivated" style="display:none;padding:20px;background:rgba(76,175,50,0.1);border:1px solid #4caf50;border-radius:8px;margin-top:4px;">
-        <div style="color:#4caf50;font-size:18px;margin-bottom:10px;text-align:center;">✓ Activated</div>
-        <div style="font-size:13px;color:#888;text-align:center;">
-          License: <span id="displayKey" style="color:var(--text);font-family:Consolas,monospace;"></span>
+        <div style="color:#4caf50;font-size:18px;margin-bottom:10px;text-align:center;">🎉 Your free license key:</div>
+        <div id="keyDisplayBox" style="background:rgba(76,175,50,0.15);border:1px solid #4caf50;border-radius:8px;padding:12px 16px;margin:12px 0;text-align:center;position:relative;display:flex;align-items:center;justify-content:center;gap:10px;white-space:nowrap;">
+          <span id="displayKey" style="font-family:Consolas,monospace;font-size:18px;color:#4caf50;letter-spacing:2px;cursor:pointer;white-space:nowrap;" title="Click to toggle visibility"></span>
+          <span id="displayKeyMask" style="font-family:Consolas,monospace;font-size:18px;color:#4caf50;letter-spacing:2px;cursor:pointer;white-space:nowrap;" title="Click to reveal">****-****-****-****</span>
+          <button id="copyKeyBtn" style="background:transparent;border:1px solid #4caf50;color:#4caf50;padding:4px 12px;border-radius:4px;font-size:12px;cursor:pointer;white-space:nowrap;flex-shrink:0;">Copy</button>
+        </div>
+        <input type="text" id="licenseInputConfirm" placeholder="Enter the key above to activate" maxlength="20"
+          style="width:100%;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:15px;font-family:Consolas,monospace;text-align:center;letter-spacing:1px;margin:12px 0;box-sizing:border-box;">
+        <button id="confirmActivateBtn" style="width:100%;padding:12px;font-size:15px;background:linear-gradient(135deg,#4caf50 0%,#2e7d32 100%);border:none;border-radius:6px;color:#fff;cursor:pointer;font-weight:500;margin-bottom:16px;">Activate</button>
+        <div id="licenseResultConfirm" style="display:none;margin-top:12px;padding:10px;border-radius:6px;font-size:13px;text-align:center;"></div>
+        <div style="text-align:center;margin-top:16px;padding-top:12px;border-top:1px solid #3c3c3c;">
+          <p style="color:#d4d4d4;font-size:13px;margin-bottom:8px;">Love this extension? Fuel future updates ☕</p>
+          <div style="display:flex;gap:8px;justify-content:center;margin-bottom:8px;">
+            <button class="donate-btn" data-amount="1" style="background:linear-gradient(135deg,#ff9800 0%,#f57c00 100%);border:none;border-radius:6px;color:#fff;padding:8px 16px;font-size:14px;cursor:pointer;">$1</button>
+            <button class="donate-btn" data-amount="2" style="background:linear-gradient(135deg,#ff9800 0%,#f57c00 100%);border:none;border-radius:6px;color:#fff;padding:8px 16px;font-size:14px;cursor:pointer;">$2</button>
+            <button class="donate-btn" data-amount="5" style="background:linear-gradient(135deg,#ff9800 0%,#f57c00 100%);border:none;border-radius:6px;color:#fff;padding:8px 16px;font-size:14px;cursor:pointer;">$5</button>
+            <button class="donate-btn" data-amount="any" style="background:linear-gradient(135deg,#ff9800 0%,#f57c00 100%);border:none;border-radius:6px;color:#fff;padding:8px 16px;font-size:14px;cursor:pointer;">Any</button>
+          </div>
+          <p style="color:#888;font-size:11px;">Paying is optional! A Chrome Web Store review ⭐ also helps.</p>
         </div>
       </div>
       <button id="closeProBtn2" style="display:none;width:100%;margin-top:16px;padding:12px;background:var(--accent);border:none;border-radius:6px;color:#fff;font-size:14px;cursor:pointer;">Close</button>
