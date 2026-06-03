@@ -989,12 +989,24 @@ async function showProDialog(reason = null) {
   const unactivatedEl = document.getElementById('proUnactivated');
   const activatedEl = document.getElementById('proActivated');
   const reasonEl = document.getElementById('proReason');
+  const loadingEl = document.getElementById('proLoading');
+  const successEl = document.getElementById('proSuccess');
+
+  // 重置所有状态
+  if (loadingEl) loadingEl.classList.remove('active');
+  if (successEl) successEl.classList.remove('active');
 
   if (isPro) {
     unactivatedEl.style.display = 'none';
     activatedEl.style.display = 'block';
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (successEl) successEl.style.display = 'none';
     document.getElementById('displayKey').textContent = data.licenseKey;
     document.getElementById('closeProBtn2').style.display = 'block';
+
+    // 已激活状态隐藏×按钮，确保打赏区可见，只能通过下方Close关闭
+    const closeBtnX = document.getElementById('closeProBtn');
+    if (closeBtnX) closeBtnX.style.display = 'none';
 
     // 已激活状态显示激活码
     const keyEl = document.getElementById('displayKey');
@@ -1006,7 +1018,8 @@ async function showProDialog(reason = null) {
 
     const confirmBtn = document.getElementById('confirmActivateBtn');
     if (confirmBtn) {
-      confirmBtn.textContent = '✓ Activated!';
+      const btnText = document.getElementById('confirmBtnText');
+      if (btnText) btnText.textContent = '✓ Activated!';
       confirmBtn.disabled = true;
       confirmBtn.style.background = '#4caf50';
     }
@@ -1025,7 +1038,12 @@ async function showProDialog(reason = null) {
   } else {
     unactivatedEl.style.display = 'block';
     activatedEl.style.display = 'none';
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (successEl) successEl.style.display = 'none';
     document.getElementById('closeProBtn2').style.display = 'none';
+    // 未激活状态恢复×按钮
+    const closeBtnX = document.getElementById('closeProBtn');
+    if (closeBtnX) closeBtnX.style.display = '';
     reasonEl.textContent = reason || '';
     reasonEl.style.display = reason ? 'block' : 'none';
     document.getElementById('licenseResult').style.display = 'none';
@@ -1040,7 +1058,8 @@ async function showProDialog(reason = null) {
 
     const confirmBtn = document.getElementById('confirmActivateBtn');
     if (confirmBtn) {
-      confirmBtn.textContent = 'Activate';
+      const btnText = document.getElementById('confirmBtnText');
+      if (btnText) btnText.textContent = 'Activate';
       confirmBtn.disabled = false;
       confirmBtn.style.background = 'linear-gradient(135deg, #4caf50 0%, #2e7d32 100%)';
     }
@@ -1070,9 +1089,20 @@ async function showProDialog(reason = null) {
  */
 async function doActivate() {
   const btn = document.getElementById('activateBtn');
+  const unactivatedEl = document.getElementById('proUnactivated');
+  const loadingEl = document.getElementById('proLoading');
 
   btn.disabled = true;
-  btn.textContent = 'Processing...';
+
+  // 显示加载动画
+  unactivatedEl.style.display = 'none';
+  if (loadingEl) {
+    loadingEl.style.display = 'flex';
+    loadingEl.classList.add('active');
+  }
+
+  // 模拟生成过程
+  await new Promise(r => setTimeout(r, 500));
 
   try {
     // 从激活码池中随机选择一个
@@ -1085,8 +1115,13 @@ async function doActivate() {
       version: 1
     };
 
+    // 隐藏加载动画，显示激活码
+    if (loadingEl) {
+      loadingEl.classList.remove('active');
+      loadingEl.style.display = 'none';
+    }
+
     // 显示激活码，等待用户确认激活
-    document.getElementById('proUnactivated').style.display = 'none';
     document.getElementById('proActivated').style.display = 'block';
     document.getElementById('displayKey').textContent = licenseKey;
     document.getElementById('closeProBtn2').style.display = 'block';
@@ -1126,7 +1161,8 @@ async function doActivate() {
       confirmInput.style.display = '';
       confirmInput.disabled = false;
       confirmBtn.disabled = false;
-      confirmBtn.textContent = 'Activate';
+      const btnText = document.getElementById('confirmBtnText');
+      if (btnText) btnText.textContent = 'Activate';
       confirmBtn.style.background = 'linear-gradient(135deg, #4caf50 0%, #2e7d32 100%)';
 
       confirmBtn.onclick = async () => {
@@ -1156,17 +1192,46 @@ async function doActivate() {
         }
         const saveResult = await saveLicenseToBookmark(licenseData);
         if (saveResult.success) {
-          if (resultEl) {
-            resultEl.textContent = '✓ Activated successfully!';
-            resultEl.style.display = 'block';
-            resultEl.style.background = 'rgba(76,175,50,0.2)';
-            resultEl.style.color = '#4caf50';
-            resultEl.style.border = '1px solid #4caf50';
+          // 显示进度条动画
+          const btnLoader = document.getElementById('confirmBtnLoader');
+          const btnText = document.getElementById('confirmBtnText');
+          if (btnLoader) {
+            btnLoader.style.display = 'block';
+            btnLoader.style.width = '0%';
           }
-          confirmBtn.textContent = '✓ Activated!';
+          if (btnText) btnText.textContent = 'Activating...';
           confirmBtn.disabled = true;
-          confirmBtn.style.background = '#4caf50';
           confirmInput.disabled = true;
+
+          // 进度条从0%到100%动画
+          const duration = 1000;
+          const startTime = Date.now();
+          await new Promise(resolve => {
+            const animate = () => {
+              const elapsed = Date.now() - startTime;
+              const progress = Math.min(elapsed / duration, 1);
+              if (btnLoader) btnLoader.style.width = (progress * 100) + '%';
+              if (progress < 1) {
+                requestAnimationFrame(animate);
+              } else {
+                resolve();
+              }
+            };
+            requestAnimationFrame(animate);
+          });
+
+          if (btnLoader) btnLoader.style.display = 'none';
+          if (btnText) btnText.textContent = '✓ Activated!';
+          confirmBtn.style.background = '#4caf50';
+
+          // 隐藏输入框
+          confirmInput.style.display = 'none';
+
+          // 隐藏×按钮，只保留下方Close按钮
+          const closeBtnX = document.getElementById('closeProBtn');
+          if (closeBtnX) closeBtnX.style.display = 'none';
+          document.getElementById('closeProBtn2').style.display = 'block';
+
           await updateLicenseButton();
         } else {
           if (resultEl) {

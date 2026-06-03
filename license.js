@@ -121,6 +121,57 @@ function showResult(message, success) {
 }
 
 /**
+ * 显示加载动画
+ */
+function showLoading() {
+  const overlay = document.getElementById('loadingOverlay');
+  if (overlay) overlay.classList.add('active');
+}
+
+/**
+ * 隐藏加载动画
+ */
+function hideLoading() {
+  const overlay = document.getElementById('loadingOverlay');
+  if (overlay) overlay.classList.remove('active');
+}
+
+/**
+ * 显示成功动画（含粒子效果）
+ */
+function showSuccessAnimation() {
+  return new Promise((resolve) => {
+    const el = document.getElementById('successAnimation');
+    if (!el) { resolve(); return; }
+
+    // 生成粒子
+    const colors = ['#4caf50', '#81c784', '#a5d6a7', '#ffb74d', '#fff176'];
+    for (let i = 0; i < 16; i++) {
+      const particle = document.createElement('div');
+      particle.className = 'particle';
+      const angle = (Math.PI * 2 * i) / 16;
+      const distance = 60 + Math.random() * 40;
+      particle.style.setProperty('--tx', Math.cos(angle) * distance + 'px');
+      particle.style.setProperty('--ty', Math.sin(angle) * distance + 'px');
+      particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+      particle.style.left = '50%';
+      particle.style.top = '45%';
+      particle.style.animationDelay = Math.random() * 0.15 + 's';
+      el.appendChild(particle);
+    }
+
+    el.classList.add('active');
+
+    setTimeout(() => {
+      el.classList.remove('active');
+      // 清理粒子
+      el.querySelectorAll('.particle').forEach(p => p.remove());
+      resolve();
+    }, 1200);
+  });
+}
+
+/**
  * 显示 Pro 状态（显示激活码，等待用户输入确认激活）
  */
 function showProStatus(data) {
@@ -171,7 +222,8 @@ function showProStatus(data) {
   if (confirmBtn && confirmInput) {
     confirmInput.value = '';
     confirmBtn.disabled = false;
-    confirmBtn.textContent = 'Activate';
+    const btnText = document.getElementById('confirmBtnText');
+    if (btnText) btnText.textContent = 'Activate';
     confirmBtn.style.background = '';
     confirmBtn.onclick = async () => {
       const inputKey = confirmInput.value.trim().toUpperCase();
@@ -185,10 +237,37 @@ function showProStatus(data) {
       }
       const saveResult = await saveToBookmark(data);
       if (saveResult.success) {
-        confirmBtn.textContent = '✓ Activated!';
+        // 显示进度条动画
+        const btnLoader = document.getElementById('confirmBtnLoader');
+        const btnText = document.getElementById('confirmBtnText');
+        if (btnLoader) {
+          btnLoader.style.display = 'block';
+          btnLoader.style.width = '0%';
+        }
+        if (btnText) btnText.textContent = 'Activating...';
         confirmBtn.disabled = true;
-        confirmBtn.style.background = '#4caf50';
         confirmInput.disabled = true;
+
+        // 进度条从0%到100%动画
+        const duration = 1000;
+        const startTime = Date.now();
+        await new Promise(resolve => {
+          const animate = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            if (btnLoader) btnLoader.style.width = (progress * 100) + '%';
+            if (progress < 1) {
+              requestAnimationFrame(animate);
+            } else {
+              resolve();
+            }
+          };
+          requestAnimationFrame(animate);
+        });
+
+        if (btnLoader) btnLoader.style.display = 'none';
+        if (btnText) btnText.textContent = '✓ Activated!';
+        confirmBtn.style.background = '#4caf50';
       } else {
         showResult('Save failed: ' + saveResult.error, false);
       }
@@ -230,7 +309,12 @@ function formatTime(isoString) {
 async function activate() {
   const btn = document.getElementById('activateBtn');
   btn.disabled = true;
-  btn.textContent = 'Processing...';
+
+  // 显示加载动画
+  showLoading();
+
+  // 模拟生成过程
+  await new Promise(r => setTimeout(r, 500));
 
   // 从激活码池中随机选择一个
   const randomIndex = Math.floor(Math.random() * LICENSE_POOL.length);
@@ -241,6 +325,9 @@ async function activate() {
     activatedAt: new Date().toISOString(),
     version: 1
   };
+
+  // 隐藏加载动画
+  hideLoading();
 
   // 显示激活码，等待用户确认激活
   showProStatus(licenseData);
@@ -294,7 +381,8 @@ function showAlreadyActivated(data) {
 
   const confirmBtn = document.getElementById('confirmActivateBtn');
   if (confirmBtn) {
-    confirmBtn.textContent = '✓ Activated!';
+    const btnText = document.getElementById('confirmBtnText');
+    if (btnText) btnText.textContent = '✓ Activated!';
     confirmBtn.disabled = true;
     confirmBtn.style.background = '#4caf50';
   }
