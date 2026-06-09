@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "JSON Side - JSON Formatter & Tools",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A dedicated JSON toolkit - Format, compare, convert, and query JSON data. Right-click any JSON text to format instantly.",
   "permissions": [
     "contextMenus",
@@ -22,7 +22,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"],
+      "js": ["content.js", "json-page.js"],
       "run_at": "document_end"
     }
   ],
