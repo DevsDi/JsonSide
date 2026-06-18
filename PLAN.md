@@ -1,82 +1,82 @@
-# Diff 付费 + 历史功能实现计划
+# Diff Paid + History Feature Implementation Plan
 
-## 目标
-实现 Diff 功能买断付费（$9 早鸟价）+ 历史记录扩容，验证市场付费意愿。
-
----
-
-## 💰 定价
-
-| 阶段 | 价格 | 条件 |
-|------|------|------|
-| **早鸟价** | **$9** | 前 50 名 |
-| 正式价 | $15 | 早鸟结束后 |
-
-**定价理由**：
-- 浏览器插件用户心理价位 $5-15
-- $9 不到一杯咖啡，决策成本低
-- 快速验证市场付费意愿
+## Goal
+Implement Diff feature one-time payment ($9 early bird) + history record expansion, validate market payment willingness.
 
 ---
 
-## 产品设计
+## 💰 Pricing
 
-### 免费版限制
+| Phase | Price | Condition |
+|-------|-------|-----------|
+| **Early Bird** | **$9** | First 50 users |
+| Regular Price | $15 | After early bird ends |
+
+**Pricing Rationale**:
+- Browser extension users' psychological price range: $5-15
+- $9 is less than a cup of coffee, low decision barrier
+- Quickly validate market payment willingness
+
+---
+
+## Product Design
+
+### Free Tier Limits
 ```
 Diff:
-├── 每日 3 次
-├── 单次最大 10KB
-└── 无导出功能
+├── 3 per day
+├── Max 10KB per comparison
+└── No export feature
 
-历史记录:
-└── 本地存储 50 条
+History:
+└── 50 local records
 ```
 
-### Pro 版权益（$9 买断）
+### Pro Tier Benefits ($9 One-Time)
 ```
 Diff:
-├── 无限次数
-├── 单次最大 10MB
-└── 导出 HTML 报告
+├── Unlimited comparisons
+├── Max 10MB per comparison
+└── Export HTML report
 
-历史记录:
-└── 本地存储 1000 条
+History:
+└── 1000 local records
 ```
 
 ---
 
-## 文件修改清单
+## File Change List
 
-| 文件 | 操作 | 说明 |
-|------|------|------|
-| `popup.js` | 修改 | 添加付费限制逻辑 |
-| `popup.html` | 修改 | 添加升级弹窗 UI + CSS |
-| `license.html` | 新建 | 激活码输入页面 |
-| `license.js` | 新建 | 激活验证逻辑 |
+| File | Action | Description |
+|------|--------|-------------|
+| `popup.js` | Modify | Add payment restriction logic |
+| `popup.html` | Modify | Add upgrade popup UI + CSS |
+| `license.html` | Create | License key input page |
+| `license.js` | Create | License activation verification logic |
 
 ---
 
-## 实现步骤
+## Implementation Steps
 
-### Step 1: 付费限制逻辑（popup.js）
+### Step 1: Payment Restriction Logic (popup.js)
 
 ```javascript
-// ========== 付费限制配置 ==========
-const FREE_DIFF_LIMIT = 3;              // 每日免费次数
-const FREE_DIFF_SIZE = 10 * 1024;       // 免费版最大 10KB
-const PRO_DIFF_SIZE = 10 * 1024 * 1024; // Pro 版最大 10MB
+// ========== Payment Restriction Config ==========
+const FREE_DIFF_LIMIT = 3;              // Free daily limit
+const FREE_DIFF_SIZE = 10 * 1024;       // Free max 10KB
+const PRO_DIFF_SIZE = 10 * 1024 * 1024; // Pro max 10MB
 
-// 检查是否为 Pro 用户
+// Check if Pro user
 async function isProUser() {
   const result = await chrome.storage.local.get('licenseKey');
   return !!result.licenseKey;
 }
 
-// 获取今日 Diff 使用次数
+// Get today's Diff usage count
 async function getTodayDiffUsage() {
   const result = await chrome.storage.local.get(['diffUsageDate', 'diffUsageCount']);
   const today = new Date().toDateString();
-  
+
   if (result.diffUsageDate !== today) {
     await chrome.storage.local.set({ diffUsageDate: today, diffUsageCount: 0 });
     return 0;
@@ -84,33 +84,33 @@ async function getTodayDiffUsage() {
   return result.diffUsageCount || 0;
 }
 
-// 检查是否可以使用 Diff
+// Check if Diff can be used
 async function canUseDiff(inputSize) {
   if (await isProUser()) return { allowed: true, isPro: true };
-  
-  // 检查文件大小
+
+  // Check file size
   if (inputSize > FREE_DIFF_SIZE) {
-    return { 
-      allowed: false, 
+    return {
+      allowed: false,
       reason: 'size_limit',
-      message: `免费版最大 10KB，当前 ${(inputSize/1024).toFixed(1)}KB`
+      message: `Free tier max 10KB, current ${(inputSize/1024).toFixed(1)}KB`
     };
   }
-  
-  // 检查次数
+
+  // Check usage count
   const usage = await getTodayDiffUsage();
   if (usage >= FREE_DIFF_LIMIT) {
-    return { 
-      allowed: false, 
+    return {
+      allowed: false,
       reason: 'count_limit',
-      message: `今日已使用 ${usage} 次`
+      message: `Already used ${usage} times today`
     };
   }
-  
+
   return { allowed: true, usage, isPro: false };
 }
 
-// 记录 Diff 使用
+// Record Diff usage
 async function recordDiffUsage() {
   if (await isProUser()) return;
   const usage = await getTodayDiffUsage();
@@ -118,68 +118,68 @@ async function recordDiffUsage() {
 }
 ```
 
-### Step 2: 修改 compareBtn.onclick
+### Step 2: Modify compareBtn.onclick
 
 ```javascript
-// 原代码修改为：
+// Modified code:
 compareBtn.onclick = async () => {
   const textA = cleanJsonText(diffOutputA.innerText);
   const textB = cleanJsonText(diffOutputB.innerText);
   const inputSize = textA.length + textB.length;
 
-  // 检查付费限制
+  // Check payment restriction
   const check = await canUseDiff(inputSize);
   if (!check.allowed) {
     showUpgradeDialog(check);
     return;
   }
 
-  // 原有逻辑...
-  
-  // 记录使用次数
+  // Original logic...
+
+  // Record usage count
   await recordDiffUsage();
-  
-  // 显示剩余次数（免费用户）
+
+  // Show remaining count (free users)
   if (!check.isPro) {
     updateDiffUsageDisplay(check.usage + 1);
   }
 };
 ```
 
-### Step 3: 升级弹窗 UI（添加到 popup.html）
+### Step 3: Upgrade Popup UI (add to popup.html)
 
 ```html
-<!-- 升级弹窗 -->
+<!-- Upgrade popup -->
 <div id="upgradeOverlay" class="upgrade-overlay" style="display:none;">
   <div class="upgrade-dialog">
     <div class="upgrade-header">
       <span class="upgrade-icon">⭐</span>
-      <h2>升级 Diff Pro</h2>
+      <h2>Upgrade to Diff Pro</h2>
     </div>
     <p id="upgradeReason" class="upgrade-reason"></p>
     <div class="upgrade-features">
-      <div class="feature-item">✓ 无限 Diff 对比</div>
-      <div class="feature-item">✓ 单次最大 10MB</div>
-      <div class="feature-item">✓ 导出 HTML 报告</div>
-      <div class="feature-item">✓ 历史记录 1000 条</div>
+      <div class="feature-item">✓ Unlimited Diff comparisons</div>
+      <div class="feature-item">✓ Max 10MB per comparison</div>
+      <div class="feature-item">✓ Export HTML report</div>
+      <div class="feature-item">✓ 1000 history records</div>
     </div>
     <div class="upgrade-price-box">
       <span class="upgrade-price">$19</span>
-      <span class="upgrade-price-note">终身使用</span>
+      <span class="upgrade-price-note">Lifetime</span>
     </div>
     <div class="upgrade-buttons">
-      <button id="buyNowBtn" class="btn-primary">立即购买</button>
-      <button id="enterKeyBtn" class="btn-secondary">输入激活码</button>
+      <button id="buyNowBtn" class="btn-primary">Buy Now</button>
+      <button id="enterKeyBtn" class="btn-secondary">Enter License Key</button>
     </div>
     <button id="closeUpgradeBtn" class="upgrade-close">×</button>
   </div>
 </div>
 ```
 
-### Step 4: 升级弹窗 CSS（添加到 popup.html style）
+### Step 4: Upgrade Popup CSS (add to popup.html style)
 
 ```css
-/* 升级弹窗样式 */
+/* Upgrade popup styles */
 .upgrade-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -264,62 +264,62 @@ compareBtn.onclick = async () => {
 }
 ```
 
-### Step 5: 弹窗逻辑（添加到 popup.js）
+### Step 5: Popup Logic (add to popup.js)
 
 ```javascript
-// 显示升级弹窗
+// Show upgrade popup
 function showUpgradeDialog(check) {
   const overlay = document.getElementById('upgradeOverlay');
   const reason = document.getElementById('upgradeReason');
-  
+
   if (check.reason === 'size_limit') {
     reason.textContent = check.message;
   } else {
-    reason.textContent = `${check.message}，升级解锁无限次数`;
+    reason.textContent = `${check.message}. Upgrade for unlimited usage`;
   }
-  
+
   overlay.style.display = 'flex';
 }
 
-// 关闭弹窗
+// Close popup
 document.getElementById('closeUpgradeBtn').onclick = () => {
   document.getElementById('upgradeOverlay').style.display = 'none';
 };
 
-// 立即购买
+// Buy now
 document.getElementById('buyNowBtn').onclick = () => {
-  // TODO: 替换为 Lemon Squeezy 链接
+  // TODO: Replace with Lemon Squeezy link
   chrome.tabs.create({ url: 'https://jsonside.com/buy' });
 };
 
-// 输入激活码
+// Enter license key
 document.getElementById('enterKeyBtn').onclick = () => {
   chrome.tabs.create({ url: chrome.runtime.getURL('license.html') });
 };
 ```
 
-### Step 6: 历史记录扩容
+### Step 6: History Record Expansion
 
 ```javascript
-// 修改 saveToHistory 函数中的 MAX_HISTORY
+// Modify MAX_HISTORY in saveToHistory function
 async function saveToHistory(jsonText, source = 'manual') {
-  // ... 前面的代码不变 ...
-  
-  // 动态获取最大历史条数
+  // ... preceding code unchanged ...
+
+  // Dynamically get max history count
   const MAX_HISTORY = (await isProUser()) ? 1000 : 50;
-  
-  // ... 后面的代码不变 ...
+
+  // ... following code unchanged ...
 }
 ```
 
-### Step 7: 激活页面（license.html）
+### Step 7: Activation Page (license.html)
 
 ```html
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>激活 JSON Side Pro</title>
+  <title>Activate JSON Side Pro</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -370,10 +370,10 @@ async function saveToHistory(jsonText, source = 'manual') {
 </head>
 <body>
   <div class="container">
-    <h1>激活 Pro 版本</h1>
-    <p class="subtitle">输入购买后收到的激活码</p>
+    <h1>Activate Pro Version</h1>
+    <p class="subtitle">Enter the license key received after purchase</p>
     <input type="text" id="licenseInput" placeholder="JSIDE-XXXX-XXXX-XXXX">
-    <button id="activateBtn">激活</button>
+    <button id="activateBtn">Activate</button>
     <div id="result" class="result" style="display:none;"></div>
   </div>
   <script src="license.js"></script>
@@ -381,28 +381,28 @@ async function saveToHistory(jsonText, source = 'manual') {
 </html>
 ```
 
-### Step 8: 激活逻辑（license.js）
+### Step 8: Activation Logic (license.js)
 
 ```javascript
-// 简单的激活码验证
+// Simple license key verification
 async function activateLicense() {
   const input = document.getElementById('licenseInput');
   const result = document.getElementById('result');
   const key = input.value.trim().toUpperCase();
-  
-  // 格式验证
+
+  // Format validation
   if (!/^JSIDE-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(key)) {
-    showResult('激活码格式不正确', false);
+    showResult('Invalid license key format', false);
     return;
   }
-  
-  // TODO: 在线验证（后续接入）
-  // 现在先做简单的本地验证
-  
-  // 存储激活码
+
+  // TODO: Online verification (to be integrated later)
+  // Simple local verification for now
+
+  // Store license key
   await chrome.storage.local.set({ licenseKey: key });
-  
-  showResult('激活成功！请刷新页面使用 Pro 功能', true);
+
+  showResult('Activation successful! Refresh the page to use Pro features', true);
 }
 
 function showResult(message, success) {
@@ -414,7 +414,7 @@ function showResult(message, success) {
 
 document.getElementById('activateBtn').onclick = activateLicense;
 
-// 回车激活
+// Enter key to activate
 document.getElementById('licenseInput').onkeydown = (e) => {
   if (e.key === 'Enter') activateLicense();
 };
@@ -422,43 +422,43 @@ document.getElementById('licenseInput').onkeydown = (e) => {
 
 ---
 
-## 支付流程
+## Payment Flow
 
 ```
-用户使用 Diff → 触发限制 → 弹窗提示升级
+User uses Diff → Triggers limit → Popup shows upgrade
                       ↓
-              点击"立即购买"
+              Click "Buy Now"
                       ↓
-           跳转 Lemon Squeezy 付款
+           Redirect to Lemon Squeezy payment
                       ↓
-              付款成功，邮件发送激活码
+              Payment success, email sends license key
                       ↓
-              用户在插件中输入激活码
+              User enters license key in extension
                       ↓
-                 本地存储，解锁 Pro
+                 Local storage, unlock Pro
 ```
 
 ---
 
-## 后续接入
+## Future Integration
 
-### Lemon Squeezy 配置
-1. 注册账号 lemonsqueezy.com
-2. 创建产品：JSON Side Diff Pro - $19
-3. 获取付款链接，替换 `buyNowBtn` 的 URL
-4. 配置 Webhook 发送激活码邮件
+### Lemon Squeezy Setup
+1. Register account at lemonsqueezy.com
+2. Create product: JSON Side Diff Pro - $19
+3. Get payment link, replace `buyNowBtn` URL
+4. Configure Webhook to send license key emails
 
-### 在线验证（可选）
-- 用 Cloudflare Workers 搭建验证 API
-- 或直接调用 Lemon Squeezy 的验证 API
+### Online Verification (Optional)
+- Build verification API with Cloudflare Workers
+- Or directly call Lemon Squeezy's verification API
 
 ---
 
-## 验证测试
+## Verification Tests
 
-1. ✅ 免费用户 Diff 次数限制生效
-2. ✅ 免费用户 Diff 大小限制生效
-3. ✅ 升级弹窗正常显示
-4. ✅ 激活码验证流程正常
-5. ✅ Pro 用户无限制
-6. ✅ 历史记录扩容生效
+1. ✅ Free user Diff count limit works
+2. ✅ Free user Diff size limit works
+3. ✅ Upgrade popup displays correctly
+4. ✅ License key verification flow works
+5. ✅ Pro user has no limits
+6. ✅ History record expansion works

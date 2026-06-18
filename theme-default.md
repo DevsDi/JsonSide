@@ -1,52 +1,51 @@
-# 默认主题配色
+# Default Theme Colors
 
-项目默认使用 **深色主题（Dark Theme）**，风格类似 **Catppuccin Mocha**
+The project uses a **Dark Theme** by default, styled after **Catppuccin Mocha**
 
-## 主题色
+## Theme Colors
 
-| 用途 | CSS 变量 | 颜色值 | 说明 |
-|------|----------|--------|------|
-| 主色调 | `--primary-color` | `#7c3aed` | 紫色 (Violet) |
-| 主色悬停 | `--primary-hover` | `#6d28d9` | 深紫 |
-| 主色浅色 | `--primary-light` | `#a78bfa` | 浅紫 |
-| 成功色 | `--success-color` | `#10b981` | 绿色 |
-| 错误色 | `--error-color` | `#ef4444` | 红色 |
-| 警告色 | `--warning-color` | `#f59e0b` | 橙色 |
-| 信息色 | `--info-color` | `#3b82f6` | 蓝色 |
+| Usage | CSS Variable | Color Value | Description |
+|-------|-------------|-------------|-------------|
+| Primary | `--primary-color` | `#7c3aed` | Violet |
+| Primary Hover | `--primary-hover` | `#6d28d9` | Deep Violet |
+| Primary Light | `--primary-light` | `#a78bfa` | Light Violet |
+| Success | `--success-color` | `#10b981` | Green |
+| Error | `--error-color` | `#ef4444` | Red |
+| Warning | `--warning-color` | `#f59e0b` | Orange |
+| Info | `--info-color` | `#3b82f6` | Blue |
 
-## 背景色
+## Background Colors
 
-| 用途 | CSS 变量 | 颜色值 | 说明 |
-|------|----------|--------|------|
-| 背景主色 | `--bg-primary` | `#1e1e2e` | 深蓝灰 |
-| 背景次色 | `--bg-secondary` | `#181825` | 更深蓝灰 |
-| 背景三级 | `--bg-tertiary` | `#11111b` | 最深 |
-| 悬停背景 | `--bg-hover` | `#313244` | 中灰 |
-| 激活背景 | `--bg-active` | `#45475a` | 亮灰 |
+| Usage | CSS Variable | Color Value | Description |
+|-------|-------------|-------------|-------------|
+| Primary Background | `--bg-primary` | `#1e1e2e` | Dark Blue-Gray |
+| Secondary Background | `--bg-secondary` | `#181825` | Deeper Blue-Gray |
+| Tertiary Background | `--bg-tertiary` | `#11111b` | Deepest |
+| Hover Background | `--bg-hover` | `#313244` | Medium Gray |
+| Active Background | `--bg-active` | `#45475a` | Light Gray |
 
-## 文字色
+## Text Colors
 
-| 用途 | CSS 变量 | 颜色值 | 说明 |
-|------|----------|--------|------|
-| 文字主色 | `--text-primary` | `#cdd6f4` | 浅灰白 |
-| 文字次色 | `--text-secondary` | `#bac2de` | 灰白 |
-| 文字弱色 | `--text-muted` | `#6c7086` | 暗灰 |
-| 文字反色 | `--text-inverse` | `#1e1e2e` | 深色 |
+| Usage | CSS Variable | Color Value | Description |
+|-------|-------------|-------------|-------------|
+| Primary Text | `--text-primary` | `#cdd6f4` | Light Gray-White |
+| Secondary Text | `--text-secondary` | `#bac2de` | Gray-White |
+| Muted Text | `--text-muted` | `#6c7086` | Dark Gray |
+| Inverse Text | `--text-inverse` | `#1e1e2e` | Dark |
 
-## 边框与圆角
+## Borders & Border Radius
 
-| 用途 | CSS 变量 | 值 |
-|------|----------|----|
-| 边框色 | `--border-color` | `#45475a` |
-| 浅边框 | `--border-light` | `#313244` |
-| 圆角 | `--border-radius` | `8px` |
-| 大圆角 | `--border-radius-lg` | `12px` |
+| Usage | CSS Variable | Value |
+|-------|-------------|-------|
+| Border Color | `--border-color` | `#45475a` |
+| Light Border | `--border-light` | `#313244` |
+| Border Radius | `--border-radius` | `8px` |
+| Large Border Radius | `--border-radius-lg` | `12px` |
 
-## 阴影
+## Shadows
 
-| 用途 | CSS 变量 | 值 |
-|------|----------|----|
-| 小阴影 | `--shadow-sm` | `0 1px 2px rgba(0, 0, 0, 0.3)` |
-| 中阴影 | `--shadow-md` | `0 4px 6px rgba(0, 0, 0, 0.4)` |
-| 大阴影 | `--shadow-lg` | `0 10px 15px rgba(0, 0, 0, 0.5)` |
-
+| Usage | CSS Variable | Value |
+|-------|-------------|-------|
+| Small Shadow | `--shadow-sm` | `0 1px 2px rgba(0, 0, 0, 0.3)` |
+| Medium Shadow | `--shadow-md` | `0 4px 6px rgba(0, 0, 0, 0.4)` |
+| Large Shadow | `--shadow-lg` | `0 10px 15px rgba(0, 0, 0, 0.5)` |
