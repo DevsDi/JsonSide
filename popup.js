@@ -621,22 +621,20 @@ const clearConvertBtn = document.getElementById('clearConvertBtn');
 const copyConvertBtn = document.getElementById('copyConvertBtn');
 
 let currentConvertType = 'typescript';
+let currentMode = 'format';
 
 function hideFormatButtons(hide) {
-  document.getElementById('tzSelect').style.display = hide ? 'none' : '';
-  document.getElementById('formatBtn').style.display = hide ? 'none' : '';
-  document.getElementById('formatTsBtn').style.display = hide ? 'none' : '';
-  document.getElementById('expandBtn').style.display = hide ? 'none' : '';
-  document.getElementById('collapseBtn').style.display = hide ? 'none' : '';
-  document.getElementById('copyBtn').style.display = hide ? 'none' : '';
-  document.getElementById('clearBtn').style.display = hide ? 'none' : '';
-  document.getElementById('historyBtn').style.display = hide ? 'none' : '';
-  // 分隔线在非 Format 模式下也隐藏
-  const divider = document.querySelector('.toolbar .divider');
-  if (divider) divider.style.display = hide ? 'none' : '';
+  // Format 模式按钮组
+  document.getElementById('formatToolbarBtns').style.display = hide ? 'none' : 'flex';
+  // 非 Format 模式显示对应模式的操作按钮，Format 模式隐藏所有模式操作按钮
+  document.getElementById('diffToolbarBtns').style.display = (hide && currentMode === 'diff') ? 'flex' : 'none';
+  document.getElementById('convertToolbarBtns').style.display = (hide && currentMode === 'convert') ? 'flex' : 'none';
+  document.getElementById('pathToolbarBtns').style.display = (hide && currentMode === 'path') ? 'flex' : 'none';
+  document.getElementById('compactToolbarBtns').style.display = (hide && currentMode === 'compact') ? 'flex' : 'none';
 }
 
 function switchMode(mode) {
+  currentMode = mode;
   // 重置所有按钮
   [modeFormatBtn, modeDiffBtn, modeConvertBtn, modePathBtn, modeCompactBtn].forEach(btn => btn.classList.remove('active'));
   // 隐藏所有模式
@@ -921,12 +919,14 @@ async function updateLicenseButton() {
   const isPro = await isProUser();
 
   if (isPro) {
-    btn.textContent = 'Pro';
+    btn.textContent = '☕';
+    btn.title = 'Support us';
     btn.classList.add('activated');
-    // 点击 PRO 按钮显示打赏弹窗
+    // 点击 ☕ 按钮显示打赏弹窗
     btn.onclick = () => showDonateDialog();
   } else {
-    btn.textContent = 'Activate';
+    btn.textContent = '☕';
+    btn.title = 'Activate Pro';
     btn.classList.remove('activated');
     btn.onclick = () => showProDialog();
   }

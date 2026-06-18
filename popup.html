@@ -29,46 +29,50 @@
       font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
       background: var(--bg);
       color: var(--text);
-      min-height: 100vh;
-      padding: 20px;
-    }
-    h1 { font-size: 24px; margin-bottom: 0; display: inline-block; }
-    .header-row {
+      height: 100vh;
       display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-    /* 激活按钮样式 */
-    .license-btn {
-      background: rgba(245, 158, 11, 0.15);
-      border: 1px solid rgba(245, 158, 11, 0.4);
-      color: #fbbf24;
-      font-weight: 500;
-      padding: 4px 12px;
-      border-radius: 12px;
-      font-size: 12px;
-      transition: all 0.2s ease;
-    }
-    .license-btn:hover {
-      background: rgba(245, 158, 11, 0.25);
-      border-color: rgba(245, 158, 11, 0.6);
-    }
-    .license-btn.activated {
-      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-      border-color: #10b981;
-      color: #cdd6f4;
-      cursor: default;
-      font-weight: 600;
-      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
-    }
-    .license-btn.activated:hover {
-      background: rgba(16, 185, 129, 0.15);
+      flex-direction: column;
+      overflow: hidden;
+      padding: 20px 14px 14px 14px;
     }
     .toolbar {
       display: flex;
-      gap: 8px;
-      margin-bottom: 12px;
+      gap: 6px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .toolbar-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-right: 4px;
+      white-space: nowrap;
+    }
+    /* 激活按钮样式 */
+    .license-btn {
+      background: none;
+      border: none;
+      color: #fbbf24;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      line-height: 1;
+      padding: 0 2px;
+    }
+    .license-btn:hover {
+      transform: scale(1.2);
+    }
+    .license-btn.activated {
+      color: #10b981;
+      cursor: pointer;
+    }
+    .license-btn.activated:hover {
+      transform: scale(1.2);
+    }
+    .toolbar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
       flex-wrap: wrap;
       align-items: center;
     }
@@ -86,17 +90,21 @@
     .main {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      height: calc(100vh - 120px);
+      gap: 12px;
+      flex: 1;
+      min-height: 0;
     }
     .panel {
       display: flex;
       flex-direction: column;
+      min-height: 0;
     }
     .panel-label {
       font-size: 13px;
-      color: #6c7086;
-      margin-bottom: 6px;
+      color: #bac2de;
+      margin-bottom: 8px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
     }
     textarea {
       flex: 1;
@@ -107,14 +115,18 @@
       font-family: Consolas, monospace;
       font-size: 13px;
       resize: none;
-      border-radius: 4px;
+      border-radius: 8px;
     }
     textarea:focus { outline: none; border-color: var(--accent); }
+    textarea::-webkit-scrollbar { width: 8px; }
+    textarea::-webkit-scrollbar-track { background: var(--bg); }
+    textarea::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+    textarea::-webkit-scrollbar-thumb:hover { background: #45475a; }
     .output {
       flex: 1;
       background: var(--bg-head);
       border: 1px solid var(--border);
-      border-radius: 4px;
+      border-radius: 8px;
       padding: 12px;
       overflow: auto;
       font-family: Consolas, monospace;
@@ -125,6 +137,10 @@
       outline: none;
     }
     .output:focus { border-color: var(--accent); }
+    .output::-webkit-scrollbar { width: 8px; }
+    .output::-webkit-scrollbar-track { background: var(--bg); }
+    .output::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+    .output::-webkit-scrollbar-thumb:hover { background: #45475a; }
     .output .v-key { color: #74c7ec; }
     .output .v-string { color: #fab387; }
     .output .v-number { color: #94e2d5; }
@@ -149,32 +165,33 @@
       background: var(--green);
       color: #cdd6f4;
       padding: 10px 20px;
-      border-radius: 4px;
+      border-radius: 8px;
       display: none;
     }
     /* 模式切换按钮 */
     .mode-btn {
       background: transparent;
-      border: 1px solid var(--border);
+      border: 1px solid rgba(255,255,255,0.12);
       color: var(--text);
-      padding: 6px 16px;
-      border-radius: 4px;
+      padding: 5px 14px;
+      border-radius: 8px;
       cursor: pointer;
       font-size: 14px;
       transition: all 0.2s;
     }
-    .mode-btn:hover { background: var(--bg-head); }
-    .mode-btn.active { background: var(--accent); border-color: var(--accent); }
+    .mode-btn:hover { border-color: rgba(255,255,255,0.25); }
+    .mode-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
     .divider { width: 1px; height: 24px; background: var(--border); margin: 0 8px; }
     /* Diff 模式 */
     .diff-toolbar { display: flex; align-items: center; gap: 8px; }
     .diff-toolbar span { flex: 1; }
-    .small-btn { padding: 4px 10px; font-size: 12px; }
-    .primary-btn { background: var(--accent); }
+    .small-btn { padding: 6px 14px; font-size: 13px; font-weight: 500; background: var(--bg-active); border: 1px solid var(--border-color); color: var(--text); border-radius: 6px; }
+    .small-btn:hover { background: #6c7086; border-color: #6c7086; color: #fff; }
+    .small-btn:active { background: #585b70; border-color: #585b70; transform: scale(0.96); }
     /* 下拉框滚动条样式 */
     select::-webkit-scrollbar { width: 8px; }
     select::-webkit-scrollbar-track { background: var(--bg); }
-    select::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    select::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
     select::-webkit-scrollbar-thumb:hover { background: #45475a; }
     /* Diff 高亮 */
     .diff-add { background: rgba(76, 175, 50, 0.6); border-left: 4px solid #10b981; }
@@ -187,7 +204,7 @@
       padding: 6px 10px;
       margin-bottom: 8px;
       background: rgba(255,255,255,0.05);
-      border-radius: 4px;
+      border-radius: 8px;
       font-size: 12px;
       display: flex;
       gap: 16px;
@@ -255,7 +272,7 @@
       width: 24px;
       height: 24px;
       background: rgba(255,255,255,0.05);
-      border-radius: 4px;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -348,7 +365,7 @@
       color: #6c7086;
       background: transparent;
       border: 1px solid var(--border);
-      border-radius: 4px;
+      border-radius: 8px;
       cursor: pointer;
       opacity: 0;
       transition: all 0.2s;
@@ -373,7 +390,7 @@
       flex-direction: column;
       background: var(--bg-head);
       border: 1px solid var(--border);
-      border-radius: 4px;
+      border-radius: 8px;
       overflow: hidden;
     }
     .convert-tabs {
@@ -443,7 +460,7 @@
     .upgrade-features {
       margin-bottom: 16px;
       background: rgba(0,0,0,0.2);
-      border-radius: 6px;
+      border-radius: 8px;
       padding: 10px 12px;
     }
     .feature-item {
@@ -475,7 +492,7 @@
       border: none;
       color: #cdd6f4;
       padding: 12px;
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
       font-size: 14px;
     }
@@ -486,7 +503,7 @@
       border: 1px solid #313244;
       color: #cdd6f4;
       padding: 12px;
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
       font-size: 14px;
     }
@@ -577,51 +594,78 @@
   </style>
 </head>
 <body>
-  <div class="header-row">
-    <h1>JSON Side</h1>
-    <button id="licenseBtn" class="license-btn">Activate</button>
-  </div>
   <div class="toolbar">
+    <span class="toolbar-title">JSON Side</span>
+    <span id="licenseBtn" class="license-btn">☕</span>
     <button id="modeFormatBtn" class="mode-btn active">Format</button>
     <button id="modeDiffBtn" class="mode-btn">Diff</button>
     <button id="modeConvertBtn" class="mode-btn">Convert</button>
     <button id="modePathBtn" class="mode-btn">Path</button>
     <button id="modeCompactBtn" class="mode-btn">Compact</button>
-    <span class="divider" style="width:2px;background:#7c3aed;margin:0 12px;"></span>
-    <select id="tzSelect" style="padding:5px 24px 5px 10px;font-size:12px;border-radius:4px;background:var(--bg-head);border:1px solid var(--border);color:var(--text);cursor:pointer;appearance:none;background-image:url('data:image/svg+xml;utf8,<svg fill=\"%23888\" height=\"12\" viewBox=\"0 0 24 24\" width=\"12\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M7 10l5 5 5-5z\"/></svg>');background-repeat:no-repeat;background-position:right 6px center;">
-      <option value="12" style="background:var(--bg-head);color:var(--text);">UTC+12 Auckland</option>
-      <option value="11" style="background:var(--bg-head);color:var(--text);">UTC+11 Solomon</option>
-      <option value="10" style="background:var(--bg-head);color:var(--text);">UTC+10 Sydney</option>
-      <option value="9" style="background:var(--bg-head);color:var(--text);">UTC+9 Tokyo</option>
-      <option value="8" selected style="background:var(--bg-head);color:var(--text);">UTC+8 Beijing</option>
-      <option value="7" style="background:var(--bg-head);color:var(--text);">UTC+7 Bangkok</option>
-      <option value="6" style="background:var(--bg-head);color:var(--text);">UTC+6 Dhaka</option>
-      <option value="5" style="background:var(--bg-head);color:var(--text);">UTC+5 Karachi</option>
-      <option value="4" style="background:var(--bg-head);color:var(--text);">UTC+4 Dubai</option>
-      <option value="3" style="background:var(--bg-head);color:var(--text);">UTC+3 Moscow</option>
-      <option value="2" style="background:var(--bg-head);color:var(--text);">UTC+2 Cairo</option>
-      <option value="1" style="background:var(--bg-head);color:var(--text);">UTC+1 Paris</option>
-      <option value="0" style="background:var(--bg-head);color:var(--text);">UTC+0 London</option>
-      <option value="-1" style="background:var(--bg-head);color:var(--text);">UTC-1 Azores</option>
-      <option value="-2" style="background:var(--bg-head);color:var(--text);">UTC-2 Mid-Atlantic</option>
-      <option value="-3" style="background:var(--bg-head);color:var(--text);">UTC-3 Sao Paulo</option>
-      <option value="-4" style="background:var(--bg-head);color:var(--text);">UTC-4 Santiago</option>
-      <option value="-5" style="background:var(--bg-head);color:var(--text);">UTC-5 New York</option>
-      <option value="-6" style="background:var(--bg-head);color:var(--text);">UTC-6 Chicago</option>
-      <option value="-7" style="background:var(--bg-head);color:var(--text);">UTC-7 Denver</option>
-      <option value="-8" style="background:var(--bg-head);color:var(--text);">UTC-8 Los Angeles</option>
-      <option value="-9" style="background:var(--bg-head);color:var(--text);">UTC-9 Alaska</option>
-      <option value="-10" style="background:var(--bg-head);color:var(--text);">UTC-10 Hawaii</option>
-      <option value="-11" style="background:var(--bg-head);color:var(--text);">UTC-11 Samoa</option>
-      <option value="-12" style="background:var(--bg-head);color:var(--text);">UTC-12 Baker Island</option>
-    </select>
-    <button id="formatBtn" class="small-btn primary-btn">Format</button>
-    <button id="formatTsBtn" class="small-btn">Format Time</button>
-    <button id="expandBtn" class="small-btn">Expand All</button>
-    <button id="collapseBtn" class="small-btn">Collapse All</button>
-    <button id="copyBtn" class="small-btn">Copy</button>
-    <button id="clearBtn" class="small-btn">Clear</button>
-    <button id="historyBtn" class="small-btn" style="margin-left:auto;">📜 History</button>
+    <span id="formatToolbarBtns" style="display:flex;gap:14px;align-items:center;margin-left:auto;">
+      <select id="tzSelect" style="padding:6px 12px;font-size:13px;font-weight:500;border-radius:6px;background:var(--bg-head);border:1px solid var(--border-color);color:var(--text);cursor:pointer;">
+        <option value="12" style="background:var(--bg-head);color:var(--text);">UTC+12 Auckland</option>
+        <option value="11" style="background:var(--bg-head);color:var(--text);">UTC+11 Solomon</option>
+        <option value="10" style="background:var(--bg-head);color:var(--text);">UTC+10 Sydney</option>
+        <option value="9" style="background:var(--bg-head);color:var(--text);">UTC+9 Tokyo</option>
+        <option value="8" selected style="background:var(--bg-head);color:var(--text);">UTC+8 Beijing</option>
+        <option value="7" style="background:var(--bg-head);color:var(--text);">UTC+7 Bangkok</option>
+        <option value="6" style="background:var(--bg-head);color:var(--text);">UTC+6 Dhaka</option>
+        <option value="5" style="background:var(--bg-head);color:var(--text);">UTC+5 Karachi</option>
+        <option value="4" style="background:var(--bg-head);color:var(--text);">UTC+4 Dubai</option>
+        <option value="3" style="background:var(--bg-head);color:var(--text);">UTC+3 Moscow</option>
+        <option value="2" style="background:var(--bg-head);color:var(--text);">UTC+2 Cairo</option>
+        <option value="1" style="background:var(--bg-head);color:var(--text);">UTC+1 Paris</option>
+        <option value="0" style="background:var(--bg-head);color:var(--text);">UTC+0 London</option>
+        <option value="-1" style="background:var(--bg-head);color:var(--text);">UTC-1 Azores</option>
+        <option value="-2" style="background:var(--bg-head);color:var(--text);">UTC-2 Mid-Atlantic</option>
+        <option value="-3" style="background:var(--bg-head);color:var(--text);">UTC-3 Sao Paulo</option>
+        <option value="-4" style="background:var(--bg-head);color:var(--text);">UTC-4 Santiago</option>
+        <option value="-5" style="background:var(--bg-head);color:var(--text);">UTC-5 New York</option>
+        <option value="-6" style="background:var(--bg-head);color:var(--text);">UTC-6 Chicago</option>
+        <option value="-7" style="background:var(--bg-head);color:var(--text);">UTC-7 Denver</option>
+        <option value="-8" style="background:var(--bg-head);color:var(--text);">UTC-8 Los Angeles</option>
+        <option value="-9" style="background:var(--bg-head);color:var(--text);">UTC-9 Alaska</option>
+        <option value="-10" style="background:var(--bg-head);color:var(--text);">UTC-10 Hawaii</option>
+        <option value="-11" style="background:var(--bg-head);color:var(--text);">UTC-11 Samoa</option>
+        <option value="-12" style="background:var(--bg-head);color:var(--text);">UTC-12 Baker Island</option>
+      </select>
+      <button id="formatBtn" class="small-btn">🔧 Format</button>
+      <button id="formatTsBtn" class="small-btn">🕐 Time</button>
+      <button id="expandBtn" class="small-btn">🔽 Expand</button>
+      <button id="collapseBtn" class="small-btn">🔼 Collapse</button>
+      <button id="copyBtn" class="small-btn">📋 Copy</button>
+      <button id="clearBtn" class="small-btn">🗑️ Clear</button>
+      <button id="historyBtn" class="small-btn">📜 History</button>
+    </span>
+    <!-- Diff 模式工具栏按钮 -->
+    <span id="diffToolbarBtns" style="display:none;gap:14px;align-items:center;margin-left:auto;">
+      <span class="divider"></span>
+      <button id="compareBtn" class="small-btn">⚡ Compare</button>
+      <button id="swapBtn" class="small-btn">↔️ Swap</button>
+      <button id="clearDiffBtn" class="small-btn">🗑️ Clear</button>
+    </span>
+    <!-- Convert 模式工具栏按钮 -->
+    <span id="convertToolbarBtns" style="display:none;gap:14px;align-items:center;margin-left:auto;">
+      <span class="divider"></span>
+      <button id="copyConvertBtn" class="small-btn">📋 Copy</button>
+      <button id="clearConvertBtn" class="small-btn">🗑️ Clear</button>
+    </span>
+    <!-- Path 模式工具栏按钮 -->
+    <span id="pathToolbarBtns" style="display:none;gap:14px;align-items:center;margin-left:auto;">
+      <span class="divider"></span>
+      <button id="queryPathBtn" class="small-btn">🔎 Query</button>
+      <button id="clearPathBtn" class="small-btn">🗑️ Clear</button>
+    </span>
+    <!-- Compact 模式工具栏按钮 -->
+    <span id="compactToolbarBtns" style="display:none;gap:14px;align-items:center;margin-left:auto;">
+      <span class="divider"></span>
+      <button id="compactBtn" class="small-btn">💎 Compact</button>
+      <button id="escapeBtn" class="small-btn">📝 Escape</button>
+      <button id="unescapeBtn" class="small-btn">📄 Unescape</button>
+      <button id="copyCompactBtn" class="small-btn">📋 Copy</button>
+      <button id="clearCompactBtn" class="small-btn">🗑️ Clear</button>
+    </span>
   </div>
   <!-- Format Mode -->
   <div id="formatMode" class="main">
@@ -637,36 +681,23 @@
   <!-- Diff Mode -->
   <div id="diffMode" class="main" style="display: none;">
     <div class="panel">
-      <div class="panel-label diff-toolbar">
-        <span>JSON A</span>
-        <button id="swapBtn" class="small-btn">Swap</button>
-      </div>
+      <div class="panel-label">JSON A</div>
       <div class="output" id="diffOutputA" contenteditable="true" spellcheck="false"></div>
     </div>
     <div class="panel">
-      <div class="panel-label diff-toolbar">
-        <span>JSON B <span id="diffStats"></span></span>
-        <button id="compareBtn" class="small-btn primary-btn">Compare</button>
-        <button id="clearDiffBtn" class="small-btn">Clear</button>
-      </div>
+      <div class="panel-label">JSON B <span id="diffStats"></span></div>
       <div class="output" id="diffOutputB" contenteditable="true" spellcheck="false"></div>
     </div>
   </div>
   <!-- Convert Mode -->
   <div id="convertMode" class="main" style="display: none;">
     <div class="panel">
-      <div class="panel-label diff-toolbar">
-        <span>JSON Input</span>
-        <button id="clearConvertBtn" class="small-btn">Clear</button>
-      </div>
+      <div class="panel-label">JSON Input</div>
       <textarea id="convertInput" placeholder='Paste JSON, e.g.: {"name": "test", "age": 18}' style="display: none;"></textarea>
       <div class="output" id="convertOutputDisplay" contenteditable="true" spellcheck="false"></div>
     </div>
     <div class="panel">
-      <div class="panel-label diff-toolbar">
-        <span>Result</span>
-        <button id="copyConvertBtn" class="small-btn">Copy</button>
-      </div>
+      <div class="panel-label">Result</div>
       <div class="convert-output" id="convertOutput">
         <div class="convert-tabs">
           <button class="convert-tab active" data-type="typescript">TypeScript</button>
@@ -680,18 +711,12 @@
   <!-- JSON Path Mode -->
   <div id="pathMode" class="main" style="display: none;">
     <div class="panel">
-      <div class="panel-label diff-toolbar">
-        <span>JSON Input</span>
-        <button id="clearPathBtn" class="small-btn">Clear</button>
-      </div>
+      <div class="panel-label">JSON Input</div>
       <textarea id="pathInput" placeholder='Paste JSON, e.g.: {"store": {"book": [{"title": "A"}]}}' style="display: none;"></textarea>
       <div class="output" id="pathOutputDisplay" contenteditable="true" spellcheck="false"></div>
     </div>
     <div class="panel">
-      <div class="panel-label diff-toolbar">
-        <span>JSON Path Query</span>
-        <button id="queryPathBtn" class="small-btn primary-btn">Query</button>
-      </div>
+      <div class="panel-label">JSON Path Query</div>
       <input id="pathExpr" type="text" placeholder='Enter path, e.g.: $.store.book[0].title or $.store..title' style="margin-bottom: 8px; width: 100%;">
       <div class="output" id="pathResult" style="flex: 1;"></div>
     </div>
@@ -699,23 +724,12 @@
   <!-- Compact Mode -->
   <div id="compactMode" class="main" style="display: none;">
     <div class="panel">
-      <div class="panel-label diff-toolbar">
-        <span>JSON Input</span>
-        <button id="clearCompactBtn" class="small-btn">Clear</button>
-      </div>
+      <div class="panel-label">JSON Input</div>
       <textarea id="compactInput" placeholder='Paste JSON or escaped string' style="display: none;"></textarea>
       <div class="output" id="compactOutputDisplay" contenteditable="true" spellcheck="false"></div>
     </div>
     <div class="panel">
-      <div class="panel-label diff-toolbar">
-        <span>Result</span>
-        <button id="copyCompactBtn" class="small-btn">Copy</button>
-      </div>
-      <div style="display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
-        <button id="compactBtn" class="small-btn primary-btn">Compact</button>
-        <button id="escapeBtn" class="small-btn">Escape</button>
-        <button id="unescapeBtn" class="small-btn">Unescape</button>
-      </div>
+      <div class="panel-label">Result</div>
       <textarea id="compactOutput" readonly style="display: none;"></textarea>
       <div class="output" id="compactResultDisplay" contenteditable="false" spellcheck="false" style="flex: 1;"></div>
     </div>

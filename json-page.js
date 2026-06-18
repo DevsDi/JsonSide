@@ -188,7 +188,7 @@
         color: #cdd6f4;
         border: none;
         padding: 6px 12px;
-        border-radius: 4px;
+        border-radius: 8px;
         cursor: pointer;
         font-size: 12px;
         transition: background 0.2s;
@@ -252,6 +252,7 @@
       /* Copy button */
       #json-page-toolbar .jp-copy {
         background: #313244;
+        border-radius: 8px;
       }
       #json-page-toolbar .jp-copy:hover {
         background: #45475a;
