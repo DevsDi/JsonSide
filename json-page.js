@@ -151,8 +151,8 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: #1e1e1e;
-        color: #d4d4d4;
+        background: #1e1e2e;
+        color: #cdd6f4;
         font-family: Consolas, 'Courier New', monospace;
         font-size: 13px;
         line-height: 1.5;
@@ -168,8 +168,8 @@
         left: 0;
         right: 0;
         height: 40px;
-        background: #252526;
-        border-bottom: 1px solid #3c3c3c;
+        background: #181825;
+        border-bottom: 1px solid #313244;
         display: flex;
         align-items: center;
         padding: 0 16px;
@@ -178,14 +178,14 @@
       }
 
       #json-page-toolbar .jp-title {
-        color: #569cd6;
+        color: #89b4fa;
         font-weight: 600;
         font-size: 14px;
       }
 
       #json-page-toolbar .jp-btn {
-        background: #0e639c;
-        color: #fff;
+        background: #7c3aed;
+        color: #cdd6f4;
         border: none;
         padding: 6px 12px;
         border-radius: 4px;
@@ -195,15 +195,15 @@
       }
 
       #json-page-toolbar .jp-btn:hover {
-        background: #1177bb;
+        background: #6d28d9;
       }
 
       #json-page-toolbar .jp-btn.active {
-        background: #4caf50;
+        background: #10b981;
       }
 
       #json-page-toolbar .jp-info {
-        color: #888;
+        color: #6c7086;
         font-size: 12px;
         margin-left: auto;
       }
@@ -215,16 +215,16 @@
       }
 
       /* Syntax highlighting */
-      .jp-key { color: #9cdcfe; }
-      .jp-string { color: #ce9178; }
-      .jp-number { color: #b5cea8; }
-      .jp-bool { color: #569cd6; }
-      .jp-null { color: #569cd6; }
-      .jp-bracket { color: #ffd700; }
-      .jp-comma { color: #d4d4d4; }
-      .jp-count { color: #888; margin-left: 4px; font-size: 11px; }
-      .jp-error { color: #f48771; }
-      .jp-ts { cursor: pointer; border-bottom: 1px dashed #888; }
+      .jp-key { color: #74c7ec; }
+      .jp-string { color: #fab387; }
+      .jp-number { color: #94e2d5; }
+      .jp-bool { color: #89b4fa; }
+      .jp-null { color: #89b4fa; }
+      .jp-bracket { color: #f9e2af; }
+      .jp-comma { color: #cdd6f4; }
+      .jp-count { color: #6c7086; margin-left: 4px; font-size: 11px; }
+      .jp-error { color: #f38ba8; }
+      .jp-ts { cursor: pointer; border-bottom: 1px dashed #6c7086; }
 
       /* Structure */
       .jp-line { padding-left: 16px; }
@@ -232,12 +232,12 @@
       .jp-block.hide { display: none; }
       .jp-toggle {
         cursor: pointer;
-        color: #888;
+        color: #6c7086;
         font-size: 10px;
         margin-right: 4px;
         user-select: none;
       }
-      .jp-toggle:hover { color: #fff; }
+      .jp-toggle:hover { color: #cdd6f4; }
 
       /* Raw view */
       #json-page-raw {
@@ -247,14 +247,14 @@
       }
 
       /* Toggle timestamp formatted */
-      .jp-ts.formatted { color: #4ec9b0; }
+      .jp-ts.formatted { color: #94e2d5; }
 
       /* Copy button */
       #json-page-toolbar .jp-copy {
-        background: #333;
+        background: #313244;
       }
       #json-page-toolbar .jp-copy:hover {
-        background: #444;
+        background: #45475a;
       }
     `;
     document.head.appendChild(style);

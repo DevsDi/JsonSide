@@ -7,13 +7,23 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
-      --bg: #1e1e1e;
-      --bg-head: #252526;
-      --text: #d4d4d4;
-      --muted: #6a9955;
-      --border: #3c3c3c;
-      --accent: #0e639c;
-      --green: #4caf50;
+      --bg: #1e1e2e;
+      --bg-head: #181825;
+      --text: #cdd6f4;
+      --muted: #6c7086;
+      --border: #313244;
+      --accent: #7c3aed;
+      --green: #10b981;
+      --primary-hover: #6d28d9;
+      --primary-light: #a78bfa;
+      --error-color: #ef4444;
+      --warning-color: #f59e0b;
+      --bg-hover: #313244;
+      --bg-active: #45475a;
+      --border-color: #45475a;
+      --border-radius: 8px;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
     }
     body {
       font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
@@ -31,9 +41,9 @@
     }
     /* 激活按钮样式 */
     .license-btn {
-      background: rgba(255, 152, 0, 0.15);
-      border: 1px solid rgba(255, 152, 0, 0.4);
-      color: #ffb74d;
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #fbbf24;
       font-weight: 500;
       padding: 4px 12px;
       border-radius: 12px;
@@ -41,19 +51,19 @@
       transition: all 0.2s ease;
     }
     .license-btn:hover {
-      background: rgba(255, 152, 0, 0.25);
-      border-color: rgba(255, 152, 0, 0.6);
+      background: rgba(245, 158, 11, 0.25);
+      border-color: rgba(245, 158, 11, 0.6);
     }
     .license-btn.activated {
-      background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
-      border-color: #4caf50;
-      color: #fff;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border-color: #10b981;
+      color: #cdd6f4;
       cursor: default;
       font-weight: 600;
-      box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
     }
     .license-btn.activated:hover {
-      background: rgba(76, 175, 80, 0.15);
+      background: rgba(16, 185, 129, 0.15);
     }
     .toolbar {
       display: flex;
@@ -67,7 +77,7 @@
       border: 1px solid var(--border);
       color: var(--text);
       padding: 8px 12px;
-      border-radius: 4px;
+      border-radius: 8px;
       font-size: 14px;
       cursor: pointer;
     }
@@ -85,7 +95,7 @@
     }
     .panel-label {
       font-size: 13px;
-      color: #888;
+      color: #6c7086;
       margin-bottom: 6px;
     }
     textarea {
@@ -115,29 +125,29 @@
       outline: none;
     }
     .output:focus { border-color: var(--accent); }
-    .output .v-key { color: #9cdcfe; }
-    .output .v-string { color: #ce9178; }
-    .output .v-number { color: #b5cea8; }
-    .output .v-bool { color: #569cd6; }
-    .output .v-null { color: #569cd6; font-style: italic; }
-    .output .v-bracket { color: #ffd700; font-weight: bold; }
+    .output .v-key { color: #74c7ec; }
+    .output .v-string { color: #fab387; }
+    .output .v-number { color: #94e2d5; }
+    .output .v-bool { color: #89b4fa; }
+    .output .v-null { color: #89b4fa; font-style: italic; }
+    .output .v-bracket { color: #f9e2af; font-weight: bold; }
     .output .v-comma { color: var(--text); }
     .output .v-count { color: var(--muted); font-size: 12px; margin-left: 4px; }
-    .output .toggle { cursor: pointer; font-size: 10px; color: #888; }
+    .output .toggle { cursor: pointer; font-size: 10px; color: #6c7086; }
     .output .toggle:hover { color: var(--text); }
-    .output .block { padding-left: 16px; border-left: 1px dashed #333; margin-left: 6px; }
+    .output .block { padding-left: 16px; border-left: 1px dashed #313244; margin-left: 6px; }
     .output .block.hide { display: none; }
     .output .line { display: block; }
-    .output .v-ts { cursor: pointer; border-bottom: 1px dashed #b5cea8; }
-    .output .v-ts.formatted { color: #ce9178; border-bottom-style: solid; }
-    .error { color: #f48771; padding: 12px; }
+    .output .v-ts { cursor: pointer; border-bottom: 1px dashed #94e2d5; }
+    .output .v-ts.formatted { color: #fab387; border-bottom-style: solid; }
+    .error { color: #f38ba8; padding: 12px; }
     .toast {
       position: fixed;
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
       background: var(--green);
-      color: #fff;
+      color: #cdd6f4;
       padding: 10px 20px;
       border-radius: 4px;
       display: none;
@@ -165,14 +175,14 @@
     select::-webkit-scrollbar { width: 8px; }
     select::-webkit-scrollbar-track { background: var(--bg); }
     select::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-    select::-webkit-scrollbar-thumb:hover { background: #555; }
+    select::-webkit-scrollbar-thumb:hover { background: #45475a; }
     /* Diff 高亮 */
-    .diff-add { background: rgba(76, 175, 50, 0.6); border-left: 4px solid #4caf50; }
-    .diff-del { background: rgba(244, 67, 54, 0.6); border-left: 4px solid #f44336; }
-    .diff-mod { background: rgba(255, 152, 0, 0.6); border-left: 4px solid #ff9800; }
-    .diff-count-add { color: #4caf50; font-weight: bold; }
-    .diff-count-del { color: #f44336; font-weight: bold; }
-    .diff-count-mod { color: #ff9800; font-weight: bold; }
+    .diff-add { background: rgba(76, 175, 50, 0.6); border-left: 4px solid #10b981; }
+    .diff-del { background: rgba(239, 68, 68, 0.6); border-left: 4px solid #ef4444; }
+    .diff-mod { background: rgba(245, 158, 11, 0.6); border-left: 4px solid #f59e0b; }
+    .diff-count-add { color: #10b981; font-weight: bold; }
+    .diff-count-del { color: #ef4444; font-weight: bold; }
+    .diff-count-mod { color: #f59e0b; font-weight: bold; }
     .diff-summary {
       padding: 6px 10px;
       margin-bottom: 8px;
@@ -183,9 +193,9 @@
       gap: 16px;
     }
     .diff-summary span { display: flex; align-items: center; gap: 4px; }
-    .diff-count-add { color: #4caf50; font-weight: bold; }
-    .diff-count-del { color: #f44336; font-weight: bold; }
-    .diff-count-mod { color: #ff9800; font-weight: bold; }
+    .diff-count-add { color: #10b981; font-weight: bold; }
+    .diff-count-del { color: #ef4444; font-weight: bold; }
+    .diff-count-mod { color: #f59e0b; font-weight: bold; }
     /* 历史记录侧边栏 */
     .history-overlay {
       display: none;
@@ -232,7 +242,7 @@
     .history-limit-tip {
       font-size: 12px;
       font-weight: normal;
-      color: #888;
+      color: #6c7086;
       margin-left: 4px;
     }
     .history-count {
@@ -250,16 +260,16 @@
       align-items: center;
       justify-content: center;
       font-size: 12px;
-      color: #888;
+      color: #6c7086;
       margin-right: 8px;
       flex-shrink: 0;
     }
     .history-load-more {
       padding: 16px;
       text-align: center;
-      color: #888;
+      color: #6c7086;
       font-size: 13px;
-      border-top: 1px dashed #3c3c3c;
+      border-top: 1px dashed #313244;
       margin-top: 8px;
     }
     .history-pagination {
@@ -321,7 +331,7 @@
     }
     .history-meta {
       font-size: 11px;
-      color: #666;
+      color: #585b70;
       margin-top: 4px;
       display: flex;
       gap: 12px;
@@ -330,12 +340,12 @@
       color: var(--muted);
     }
     .history-source {
-      color: #888;
+      color: #6c7086;
     }
     .history-delete {
       padding: 4px 8px;
       font-size: 11px;
-      color: #888;
+      color: #6c7086;
       background: transparent;
       border: 1px solid var(--border);
       border-radius: 4px;
@@ -347,13 +357,13 @@
       opacity: 1;
     }
     .history-delete:hover {
-      color: #f44336;
-      border-color: #f44336;
+      color: #ef4444;
+      border-color: #ef4444;
     }
     .history-empty {
       padding: 40px 20px;
       text-align: center;
-      color: #666;
+      color: #585b70;
       font-size: 14px;
     }
     /* 转换模式 */
@@ -375,7 +385,7 @@
       padding: 8px 16px;
       background: transparent;
       border: none;
-      color: #888;
+      color: #6c7086;
       cursor: pointer;
       font-size: 13px;
       transition: all 0.2s;
@@ -426,7 +436,7 @@
     .upgrade-header h2 { margin: 6px 0 0; font-size: 18px; color: var(--text); }
     .upgrade-reason {
       text-align: center;
-      color: #f48771;
+      color: #f38ba8;
       margin-bottom: 12px;
       font-size: 13px;
     }
@@ -451,7 +461,7 @@
       color: var(--green);
     }
     .upgrade-price-note {
-      color: #888;
+      color: #6c7086;
       margin-left: 6px;
       font-size: 12px;
     }
@@ -463,45 +473,45 @@
       flex: 1;
       background: var(--green);
       border: none;
-      color: #fff;
+      color: #cdd6f4;
       padding: 12px;
       border-radius: 6px;
       cursor: pointer;
       font-size: 14px;
     }
-    .btn-primary:hover { background: #45a049; }
+    .btn-primary:hover { background: #059669; }
     .btn-secondary {
       flex: 1;
       background: transparent;
-      border: 1px solid #3c3c3c;
-      color: #d4d4d4;
+      border: 1px solid #313244;
+      color: #cdd6f4;
       padding: 12px;
       border-radius: 6px;
       cursor: pointer;
       font-size: 14px;
     }
-    .btn-secondary:hover { background: #3c3c3c; }
+    .btn-secondary:hover { background: #313244; }
     .upgrade-close {
       position: absolute;
       top: 12px;
       right: 12px;
       background: transparent;
       border: none;
-      color: #888;
+      color: #6c7086;
       font-size: 20px;
       cursor: pointer;
       padding: 4px 8px;
     }
-    .upgrade-close:hover { color: #d4d4d4; }
+    .upgrade-close:hover { color: #cdd6f4; }
     #displayKey { display: none; }
-    #displayKeyMask { display: inline; font-family:Consolas,monospace;font-size:18px;color:#4caf50;letter-spacing:2px; }
+    #displayKeyMask { display: inline; font-family:Consolas,monospace;font-size:18px;color:#10b981;letter-spacing:2px; }
     #displayKey.revealed { display: inline; }
     #displayKey.revealed + #displayKeyMask { display: none; }
 
     #licenseInputConfirm:focus {
       outline: none;
-      border-color: rgba(76,175,80,0.5) !important;
-      box-shadow: 0 0 0 3px rgba(76,175,80,0.1), 0 0 20px rgba(76,175,80,0.05);
+      border-color: rgba(16,185,129,0.5) !important;
+      box-shadow: 0 0 0 3px rgba(16,185,129,0.1), 0 0 20px rgba(16,185,129,0.05);
     }
     /* 加载动画 */
     .pro-loading {
@@ -516,8 +526,8 @@
 
     .pro-spinner {
       width: 44px; height: 44px;
-      border: 3px solid rgba(76,175,80,0.15);
-      border-top-color: #4caf50;
+      border: 3px solid rgba(16,185,129,0.15);
+      border-top-color: #10b981;
       border-radius: 50%;
       animation: proSpin 0.8s linear infinite;
     }
@@ -525,7 +535,7 @@
     @keyframes proSpin { to { transform: rotate(360deg); } }
 
     .pro-loading-text {
-      color: #888; font-size: 14px; font-weight: 500;
+      color: #6c7086; font-size: 14px; font-weight: 500;
     }
 
     @keyframes proShimmer {
@@ -547,11 +557,11 @@
     .pro-success-check {
       width: 56px; height: 56px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
       display: flex; align-items: center; justify-content: center;
       font-size: 28px;
       animation: proPopIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      box-shadow: 0 4px 24px rgba(76,175,80,0.4);
+      box-shadow: 0 4px 24px rgba(16,185,129,0.4);
     }
 
     @keyframes proPopIn {
@@ -561,7 +571,7 @@
     }
 
     .pro-success-text {
-      color: #4caf50; font-size: 16px; font-weight: 600;
+      color: #10b981; font-size: 16px; font-weight: 600;
       animation: fadeIn 0.3s ease 0.3s both;
     }
   </style>
@@ -577,7 +587,7 @@
     <button id="modeConvertBtn" class="mode-btn">Convert</button>
     <button id="modePathBtn" class="mode-btn">Path</button>
     <button id="modeCompactBtn" class="mode-btn">Compact</button>
-    <span class="divider" style="width:2px;background:#0e639c;margin:0 12px;"></span>
+    <span class="divider" style="width:2px;background:#7c3aed;margin:0 12px;"></span>
     <select id="tzSelect" style="padding:5px 24px 5px 10px;font-size:12px;border-radius:4px;background:var(--bg-head);border:1px solid var(--border);color:var(--text);cursor:pointer;appearance:none;background-image:url('data:image/svg+xml;utf8,<svg fill=\"%23888\" height=\"12\" viewBox=\"0 0 24 24\" width=\"12\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M7 10l5 5 5-5z\"/></svg>');background-repeat:no-repeat;background-position:right 6px center;">
       <option value="12" style="background:var(--bg-head);color:var(--text);">UTC+12 Auckland</option>
       <option value="11" style="background:var(--bg-head);color:var(--text);">UTC+11 Solomon</option>
@@ -748,59 +758,59 @@
 
       <!-- Unactivated -->
       <div id="proUnactivated" style="display:none;">
-        <div style="width:56px;height:56px;background:linear-gradient(135deg,#4caf50 0%,#2e7d32 100%);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:28px;box-shadow:0 4px 20px rgba(76,175,80,0.25);">⭐</div>
+        <div style="width:56px;height:56px;background:linear-gradient(135deg,#10b981 0%,#059669 100%);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:28px;box-shadow:0 4px 20px rgba(16,185,129,0.25);">⭐</div>
         <h2 style="font-size:22px;font-weight:700;margin-bottom:6px;">Get Diff Pro</h2>
-        <p style="color:#888;font-size:14px;margin-bottom:24px;">Free license for unlimited features</p>
+        <p style="color:#6c7086;font-size:14px;margin-bottom:24px;">Free license for unlimited features</p>
         <p id="proReason" class="upgrade-reason"></p>
         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px;">
           <div style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:12px;">
-            <div style="width:38px;height:38px;background:rgba(76,175,80,0.12);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🔍</div>
-            <div style="text-align:left;"><div style="font-size:14px;font-weight:600;color:#e0e0e0;">Unlimited Diff</div><div style="font-size:12px;color:#777;margin-top:1px;">Compare without limits</div></div>
+            <div style="width:38px;height:38px;background:rgba(16,185,129,0.12);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🔍</div>
+            <div style="text-align:left;"><div style="font-size:14px;font-weight:600;color:#cdd6f4;">Unlimited Diff</div><div style="font-size:12px;color:#6c7086;margin-top:1px;">Compare without limits</div></div>
           </div>
           <div style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:12px;">
             <div style="width:38px;height:38px;background:rgba(14,99,156,0.12);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">⏰</div>
-            <div style="text-align:left;"><div style="font-size:14px;font-weight:600;color:#e0e0e0;">Format Time</div><div style="font-size:12px;color:#777;margin-top:1px;">Unlimited timestamps</div></div>
+            <div style="text-align:left;"><div style="font-size:14px;font-weight:600;color:#cdd6f4;">Format Time</div><div style="font-size:12px;color:#6c7086;margin-top:1px;">Unlimited timestamps</div></div>
           </div>
           <div style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:12px;">
             <div style="width:38px;height:38px;background:rgba(255,152,0,0.12);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📦</div>
-            <div style="text-align:left;"><div style="font-size:14px;font-weight:600;color:#e0e0e0;">2MB Size Limit</div><div style="font-size:12px;color:#777;margin-top:1px;">Per comparison</div></div>
+            <div style="text-align:left;"><div style="font-size:14px;font-weight:600;color:#cdd6f4;">2MB Size Limit</div><div style="font-size:12px;color:#6c7086;margin-top:1px;">Per comparison</div></div>
           </div>
           <div style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:12px;">
             <div style="width:38px;height:38px;background:rgba(156,39,176,0.12);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📜</div>
-            <div style="text-align:left;"><div style="font-size:14px;font-weight:600;color:#e0e0e0;">100 History</div><div style="font-size:12px;color:#777;margin-top:1px;">Auto-saved records</div></div>
+            <div style="text-align:left;"><div style="font-size:14px;font-weight:600;color:#cdd6f4;">100 History</div><div style="font-size:12px;color:#6c7086;margin-top:1px;">Auto-saved records</div></div>
           </div>
         </div>
-        <button id="activateBtn" style="width:100%;padding:14px;font-size:15px;font-weight:600;background:linear-gradient(135deg,#4caf50 0%,#2e7d32 100%);border:none;border-radius:12px;color:#fff;cursor:pointer;box-shadow:0 4px 16px rgba(76,175,80,0.3);">Get Free License</button>
+        <button id="activateBtn" style="width:100%;padding:14px;font-size:15px;font-weight:600;background:linear-gradient(135deg,#10b981 0%,#059669 100%);border:none;border-radius:12px;color:#cdd6f4;cursor:pointer;box-shadow:0 4px 16px rgba(16,185,129,0.3);">Get Free License</button>
         <div id="licenseResult" style="display:none;margin-top:12px;padding:10px;border-radius:10px;font-size:13px;text-align:center;"></div>
       </div>
 
       <!-- Activated -->
       <div id="proActivated" style="display:none;margin-top:4px;">
         <div id="activatedHeader" style="font-size:40px;margin-bottom:4px;">🎉</div>
-        <div id="activatedTitle" style="font-size:16px;font-weight:600;color:#e0e0e0;margin-bottom:20px;">Your free license key</div>
-        <div id="keyDisplayBox" style="background:rgba(76,175,80,0.06);border:1px solid rgba(76,175,80,0.15);border-radius:14px;padding:18px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:center;gap:14px;white-space:nowrap;">
-          <span id="displayKey" style="font-family:Consolas,monospace;font-size:18px;font-weight:700;color:#4caf50;letter-spacing:2px;cursor:pointer;white-space:nowrap;position:relative;z-index:1;" title="Click to toggle visibility"></span>
-          <span id="displayKeyMask" style="font-family:Consolas,monospace;font-size:18px;font-weight:700;color:#4caf50;letter-spacing:2px;cursor:pointer;white-space:nowrap;position:relative;z-index:1;" title="Click to reveal">****-****-****-****</span>
-          <button id="copyKeyBtn" style="background:rgba(76,175,80,0.12);border:1px solid rgba(76,175,80,0.25);color:#4caf50;padding:6px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;position:relative;z-index:1;">Copy</button>
+        <div id="activatedTitle" style="font-size:16px;font-weight:600;color:#cdd6f4;margin-bottom:20px;">Your free license key</div>
+        <div id="keyDisplayBox" style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:14px;padding:18px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:center;gap:14px;white-space:nowrap;">
+          <span id="displayKey" style="font-family:Consolas,monospace;font-size:18px;font-weight:700;color:#10b981;letter-spacing:2px;cursor:pointer;white-space:nowrap;position:relative;z-index:1;" title="Click to toggle visibility"></span>
+          <span id="displayKeyMask" style="font-family:Consolas,monospace;font-size:18px;font-weight:700;color:#10b981;letter-spacing:2px;cursor:pointer;white-space:nowrap;position:relative;z-index:1;" title="Click to reveal">****-****-****-****</span>
+          <button id="copyKeyBtn" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25);color:#10b981;padding:6px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;position:relative;z-index:1;">Copy</button>
         </div>
         <div id="activatedInputWrap" style="position:relative;margin-bottom:16px;">
           <input type="text" id="licenseInputConfirm" placeholder="Enter the key above to activate" maxlength="20"
-            style="width:100%;padding:16px 18px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;color:#e0e0e0;font-size:16px;font-family:Consolas,monospace;text-align:center;letter-spacing:2px;font-weight:600;box-sizing:border-box;transition:border-color 0.3s,box-shadow 0.3s;">
+            style="width:100%;padding:16px 18px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;color:#cdd6f4;font-size:16px;font-family:Consolas,monospace;text-align:center;letter-spacing:2px;font-weight:600;box-sizing:border-box;transition:border-color 0.3s,box-shadow 0.3s;">
         </div>
-        <button id="confirmActivateBtn" style="width:100%;padding:14px;font-size:15px;font-weight:600;background:linear-gradient(135deg,#4caf50 0%,#2e7d32 100%);border:none;border-radius:12px;color:#fff;cursor:pointer;box-shadow:0 4px 16px rgba(76,175,80,0.3);margin-bottom:20px;position:relative;overflow:hidden;"><span id="confirmBtnText" style="position:relative;z-index:1;">Activate</span><div id="confirmBtnLoader" style="display:none;position:absolute;top:0;left:0;width:0;height:100%;background:rgba(255,255,255,0.25);"></div></button>
+        <button id="confirmActivateBtn" style="width:100%;padding:14px;font-size:15px;font-weight:600;background:linear-gradient(135deg,#10b981 0%,#059669 100%);border:none;border-radius:12px;color:#cdd6f4;cursor:pointer;box-shadow:0 4px 16px rgba(16,185,129,0.3);margin-bottom:20px;position:relative;overflow:hidden;"><span id="confirmBtnText" style="position:relative;z-index:1;">Activate</span><div id="confirmBtnLoader" style="display:none;position:absolute;top:0;left:0;width:0;height:100%;background:rgba(255,255,255,0.25);"></div></button>
         <div id="licenseResultConfirm" style="display:none;margin-bottom:12px;padding:10px 14px;border-radius:10px;font-size:13px;font-weight:500;text-align:center;"></div>
         <div id="donateSection" style="padding:20px 16px;background:rgba(255,152,0,0.03);border:1px solid rgba(255,152,0,0.08);border-radius:14px;">
-          <p style="color:#bbb;font-size:13px;font-weight:500;margin-bottom:14px;">Love this extension? Fuel future updates ☕</p>
+          <p style="color:#bac2de;font-size:13px;font-weight:500;margin-bottom:14px;">Love this extension? Fuel future updates ☕</p>
           <div style="display:flex;gap:8px;justify-content:center;margin-bottom:12px;">
-            <button class="donate-btn" data-amount="1" style="background:rgba(255,152,0,0.08);border:1px solid rgba(255,152,0,0.2);color:#ffb74d;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;">$1</button>
-            <button class="donate-btn" data-amount="2" style="background:rgba(255,152,0,0.08);border:1px solid rgba(255,152,0,0.2);color:#ffb74d;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;">$2</button>
-            <button class="donate-btn" data-amount="5" style="background:rgba(255,152,0,0.08);border:1px solid rgba(255,152,0,0.2);color:#ffb74d;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;">$5</button>
-            <button class="donate-btn" data-amount="any" style="background:rgba(255,152,0,0.08);border:1px solid rgba(255,152,0,0.2);color:#ffb74d;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;">Any</button>
+            <button class="donate-btn" data-amount="1" style="background:rgba(255,152,0,0.08);border:1px solid rgba(255,152,0,0.2);color:#fbbf24;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;">$1</button>
+            <button class="donate-btn" data-amount="2" style="background:rgba(255,152,0,0.08);border:1px solid rgba(255,152,0,0.2);color:#fbbf24;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;">$2</button>
+            <button class="donate-btn" data-amount="5" style="background:rgba(255,152,0,0.08);border:1px solid rgba(255,152,0,0.2);color:#fbbf24;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;">$5</button>
+            <button class="donate-btn" data-amount="any" style="background:rgba(255,152,0,0.08);border:1px solid rgba(255,152,0,0.2);color:#fbbf24;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;">Any</button>
           </div>
-          <p style="color:#666;font-size:11px;line-height:1.5;">Paying is optional! A Chrome Web Store review ⭐ also helps.</p>
+          <p style="color:#585b70;font-size:11px;line-height:1.5;">Paying is optional! A Chrome Web Store review ⭐ also helps.</p>
         </div>
       </div>
-      <button id="closeProBtn2" style="display:none;width:100%;margin-top:16px;padding:12px;background:var(--accent);border:none;border-radius:12px;color:#fff;font-size:14px;cursor:pointer;font-weight:600;">Close</button>
+      <button id="closeProBtn2" style="display:none;width:100%;margin-top:16px;padding:12px;background:var(--accent);border:none;border-radius:12px;color:#cdd6f4;font-size:14px;cursor:pointer;font-weight:600;">Close</button>
     </div>
   </div>
 

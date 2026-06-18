@@ -170,7 +170,7 @@ function showSuccessAnimation() {
     if (!el) { resolve(); return; }
 
     // 生成粒子
-    const colors = ['#4caf50', '#81c784', '#a5d6a7', '#ffb74d', '#fff176'];
+    const colors = ['#10b981', '#6ee7b7', '#a7f3d0', '#fbbf24', '#fef08a'];
     for (let i = 0; i < 16; i++) {
       const particle = document.createElement('div');
       particle.className = 'particle';
@@ -292,7 +292,7 @@ function showProStatus(data) {
 
         if (btnLoader) btnLoader.style.display = 'none';
         if (btnText) btnText.textContent = '✓ Activated!';
-        confirmBtn.style.background = '#4caf50';
+        confirmBtn.style.background = '#10b981';
       } else {
         showResult('Save failed: ' + saveResult.error, false);
       }
@@ -409,7 +409,7 @@ function showAlreadyActivated(data) {
     const btnText = document.getElementById('confirmBtnText');
     if (btnText) btnText.textContent = '✓ Activated!';
     confirmBtn.disabled = true;
-    confirmBtn.style.background = '#4caf50';
+    confirmBtn.style.background = '#10b981';
   }
 
   // 绑定打赏按钮

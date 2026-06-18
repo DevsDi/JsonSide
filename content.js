@@ -16,13 +16,13 @@
     tooltip.style.cssText = `
       position: fixed;
       z-index: 2147483647;
-      background: #1e1e1e;
-      color: #ce9178;
+      background: #1e1e2e;
+      color: #fab387;
       padding: 4px 8px;
-      border-radius: 4px;
+      border-radius: 8px;
       font-size: 12px;
       font-family: Consolas, monospace;
-      border: 1px solid #3c3c3c;
+      border: 1px solid #313244;
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
       pointer-events: none;
       display: none;

@@ -11,8 +11,8 @@
 
     body {
       font-family: 'Inter', 'Segoe UI', sans-serif;
-      background: #0d0d0d;
-      color: #e0e0e0;
+      background: #11111b;
+      color: #cdd6f4;
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -28,7 +28,7 @@
       left: -50%;
       width: 200%;
       height: 200%;
-      background: radial-gradient(ellipse at 30% 20%, rgba(76,175,80,0.06) 0%, transparent 50%),
+      background: radial-gradient(ellipse at 30% 20%, rgba(16,185,129,0.06) 0%, transparent 50%),
                   radial-gradient(ellipse at 70% 80%, rgba(14,99,156,0.06) 0%, transparent 50%);
       animation: bgShift 20s ease-in-out infinite alternate;
       pointer-events: none;
@@ -40,7 +40,7 @@
     }
 
     .container {
-      background: linear-gradient(145deg, #1a1a1a 0%, #222222 100%);
+      background: linear-gradient(145deg, #1e1e2e 0%, #181825 100%);
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 20px;
       padding: 40px 36px;
@@ -59,20 +59,20 @@
       transform: translateX(-50%);
       width: 60%;
       height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(76,175,80,0.5), transparent);
+      background: linear-gradient(90deg, transparent, rgba(16,185,129,0.5), transparent);
     }
 
     .logo {
       width: 56px;
       height: 56px;
-      background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
       border-radius: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
       margin: 0 auto 20px;
       font-size: 28px;
-      box-shadow: 0 4px 20px rgba(76,175,80,0.25);
+      box-shadow: 0 4px 20px rgba(16,185,129,0.25);
     }
 
     h1 {
@@ -83,7 +83,7 @@
     }
 
     .subtitle {
-      color: #888;
+      color: #6c7086;
       margin-bottom: 28px;
       font-size: 14px;
       font-weight: 400;
@@ -131,12 +131,12 @@
     .feature-name {
       font-size: 14px;
       font-weight: 600;
-      color: #e0e0e0;
+      color: #cdd6f4;
     }
 
     .feature-desc {
       font-size: 12px;
-      color: #777;
+      color: #6c7086;
       margin-top: 1px;
     }
 
@@ -154,14 +154,14 @@
     }
 
     button.primary {
-      background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
-      color: #fff;
-      box-shadow: 0 4px 16px rgba(76,175,80,0.3);
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #cdd6f4;
+      box-shadow: 0 4px 16px rgba(16,185,129,0.3);
       margin-bottom: 20px;
     }
 
     button.primary:hover {
-      box-shadow: 0 6px 24px rgba(76,175,80,0.4);
+      box-shadow: 0 6px 24px rgba(16,185,129,0.4);
       transform: translateY(-1px);
     }
 
@@ -170,7 +170,7 @@
     }
 
     button.primary:disabled {
-      background: #3c3c3c;
+      background: #313244;
       box-shadow: none;
       transform: none;
       cursor: not-allowed;
@@ -200,14 +200,14 @@
     .pro-status .status-text {
       font-size: 16px;
       font-weight: 600;
-      color: #e0e0e0;
+      color: #cdd6f4;
       margin-bottom: 20px;
     }
 
     /* 激活码显示 */
     .license-key-display {
-      background: rgba(76,175,80,0.06);
-      border: 1px solid rgba(76,175,80,0.15);
+      background: rgba(16,185,129,0.06);
+      border: 1px solid rgba(16,185,129,0.15);
       border-radius: 14px;
       padding: 18px 20px;
       margin-bottom: 20px;
@@ -222,7 +222,7 @@
       font-family: 'SF Mono', 'Cascadia Code', Consolas, monospace;
       font-size: 18px;
       font-weight: 700;
-      color: #4caf50;
+      color: #10b981;
       letter-spacing: 2px;
       cursor: pointer;
       white-space: nowrap;
@@ -236,9 +236,9 @@
     #displayKey.revealed + #displayKeyMask { display: none; }
 
     .copy-btn {
-      background: rgba(76,175,80,0.12);
-      border: 1px solid rgba(76,175,80,0.25);
-      color: #4caf50;
+      background: rgba(16,185,129,0.12);
+      border: 1px solid rgba(16,185,129,0.25);
+      color: #10b981;
       padding: 6px 16px;
       border-radius: 8px;
       font-size: 12px;
@@ -252,8 +252,8 @@
     }
 
     .copy-btn:hover {
-      background: rgba(76,175,80,0.2);
-      border-color: rgba(76,175,80,0.4);
+      background: rgba(16,185,129,0.2);
+      border-color: rgba(16,185,129,0.4);
     }
 
     /* 输入框 */
@@ -268,7 +268,7 @@
       background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.1);
       border-radius: 14px;
-      color: #e0e0e0;
+      color: #cdd6f4;
       font-size: 16px;
       font-family: 'SF Mono', 'Cascadia Code', Consolas, monospace;
       text-align: center;
@@ -279,12 +279,12 @@
 
     .input-wrapper input:focus {
       outline: none;
-      border-color: rgba(76,175,80,0.5);
-      box-shadow: 0 0 0 3px rgba(76,175,80,0.1), 0 0 20px rgba(76,175,80,0.05);
+      border-color: rgba(16,185,129,0.5);
+      box-shadow: 0 0 0 3px rgba(16,185,129,0.1), 0 0 20px rgba(16,185,129,0.05);
     }
 
     .input-wrapper input::placeholder {
-      color: #555;
+      color: #585b70;
       font-size: 13px;
       letter-spacing: 0;
       font-family: 'Inter', sans-serif;
@@ -304,13 +304,13 @@
 
     .success {
       background: rgba(76,175,50,0.12);
-      color: #4caf50;
+      color: #10b981;
       border: 1px solid rgba(76,175,50,0.25);
     }
 
     .error {
       background: rgba(244,67,54,0.12);
-      color: #ef5350;
+      color: #ef4444;
       border: 1px solid rgba(244,67,54,0.25);
     }
 
@@ -324,7 +324,7 @@
     }
 
     .donate-title {
-      color: #bbb;
+      color: #bac2de;
       font-size: 13px;
       font-weight: 500;
       margin-bottom: 14px;
@@ -340,7 +340,7 @@
     .donate-btn {
       background: rgba(255,152,0,0.08);
       border: 1px solid rgba(255,152,0,0.2);
-      color: #ffb74d;
+      color: #fbbf24;
       border-radius: 10px;
       padding: 10px 20px;
       font-size: 14px;
@@ -358,7 +358,7 @@
     }
 
     .donate-note {
-      color: #666;
+      color: #585b70;
       font-size: 11px;
       margin: 4px 0;
       line-height: 1.5;
@@ -367,7 +367,7 @@
     .secondary-btn {
       background: transparent;
       border: 1px solid rgba(255,255,255,0.08);
-      color: #777;
+      color: #6c7086;
       padding: 10px;
       font-size: 12px;
       font-weight: 500;
@@ -378,7 +378,7 @@
 
     .secondary-btn:hover {
       border-color: rgba(255,255,255,0.15);
-      color: #aaa;
+      color: #bac2de;
     }
 
     /* 加载动画 */
@@ -416,14 +416,14 @@
     .spinner::before {
       width: 100%;
       height: 100%;
-      border: 3px solid rgba(76,175,80,0.15);
+      border: 3px solid rgba(16,185,129,0.15);
     }
 
     .spinner::after {
       width: 100%;
       height: 100%;
       border: 3px solid transparent;
-      border-top-color: #4caf50;
+      border-top-color: #10b981;
       animation: spin 0.8s linear infinite;
     }
 
@@ -432,7 +432,7 @@
     }
 
     .loading-text {
-      color: #888;
+      color: #6c7086;
       font-size: 14px;
       font-weight: 500;
     }
@@ -472,13 +472,13 @@
       width: 64px;
       height: 64px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 32px;
       animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      box-shadow: 0 4px 24px rgba(76,175,80,0.4);
+      box-shadow: 0 4px 24px rgba(16,185,129,0.4);
     }
 
     @keyframes popIn {
@@ -488,7 +488,7 @@
     }
 
     .success-text {
-      color: #4caf50;
+      color: #10b981;
       font-size: 16px;
       font-weight: 600;
       animation: fadeIn 0.3s ease 0.3s both;
@@ -530,7 +530,7 @@
     <div id="inputArea">
       <div class="features">
         <div class="feature-item">
-          <div class="feature-icon-wrap" style="background:rgba(76,175,80,0.12);">🔍</div>
+          <div class="feature-icon-wrap" style="background:rgba(16,185,129,0.12);">🔍</div>
           <div class="feature-text">
             <div class="feature-name">Unlimited Diff</div>
             <div class="feature-desc">Compare without limits</div>

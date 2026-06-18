@@ -75,15 +75,10 @@ async function getLicenseData() {
 }
 
 /**
- * 检查是否为 Pro 用户（从书签读取）
+ * 检查是否为 Pro 用户（默认所有用户都是 Pro）
  */
 async function isProUser() {
-  try {
-    const data = await getLicenseData();
-    return !!(data && data.licenseKey);
-  } catch (e) {
-    return false;
-  }
+  return true;
 }
 
 /**
@@ -397,7 +392,7 @@ const TS_MAX_SEC = 4102444800;   // 2100-01-01 00:00:00 UTC (秒)
 function render(data, depth = 0) {
   // 深度限制检查
   if (depth > MAX_DEPTH) {
-    return '<span class="error" style="color: #f48771;">Nested too deep, truncated</span>';
+    return '<span class="error" style="color: #f38ba8;">Nested too deep, truncated</span>';
   }
 
   if (data === null) return '<span class="v-null">null</span>';
@@ -1131,7 +1126,7 @@ async function showProDialog(reason = null) {
       const btnText = document.getElementById('confirmBtnText');
       if (btnText) btnText.textContent = '✓ Activated!';
       confirmBtn.disabled = true;
-      confirmBtn.style.background = '#4caf50';
+      confirmBtn.style.background = '#10b981';
     }
 
     // 绑定打赏按钮
@@ -1171,7 +1166,7 @@ async function showProDialog(reason = null) {
       const btnText = document.getElementById('confirmBtnText');
       if (btnText) btnText.textContent = 'Activate';
       confirmBtn.disabled = false;
-      confirmBtn.style.background = 'linear-gradient(135deg, #4caf50 0%, #2e7d32 100%)';
+      confirmBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
     }
   }
 
@@ -1273,7 +1268,7 @@ async function doActivate() {
       confirmBtn.disabled = false;
       const btnText = document.getElementById('confirmBtnText');
       if (btnText) btnText.textContent = 'Activate';
-      confirmBtn.style.background = 'linear-gradient(135deg, #4caf50 0%, #2e7d32 100%)';
+      confirmBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
 
       confirmBtn.onclick = async () => {
         const inputKey = confirmInput.value.trim().toUpperCase();
@@ -1283,8 +1278,8 @@ async function doActivate() {
             resultEl.textContent = 'Please enter the license key';
             resultEl.style.display = 'block';
             resultEl.style.background = 'rgba(244,67,54,0.2)';
-            resultEl.style.color = '#f44336';
-            resultEl.style.border = '1px solid #f44336';
+            resultEl.style.color = '#ef4444';
+            resultEl.style.border = '1px solid #ef4444';
             setTimeout(() => { resultEl.style.display = 'none'; }, 3000);
           }
           return;
@@ -1294,8 +1289,8 @@ async function doActivate() {
             resultEl.textContent = 'License key does not match';
             resultEl.style.display = 'block';
             resultEl.style.background = 'rgba(244,67,54,0.2)';
-            resultEl.style.color = '#f44336';
-            resultEl.style.border = '1px solid #f44336';
+            resultEl.style.color = '#ef4444';
+            resultEl.style.border = '1px solid #ef4444';
             setTimeout(() => { resultEl.style.display = 'none'; }, 3000);
           }
           return;
@@ -1332,7 +1327,7 @@ async function doActivate() {
 
           if (btnLoader) btnLoader.style.display = 'none';
           if (btnText) btnText.textContent = '✓ Activated!';
-          confirmBtn.style.background = '#4caf50';
+          confirmBtn.style.background = '#10b981';
 
           // 隐藏输入框
           confirmInput.style.display = 'none';
@@ -1348,8 +1343,8 @@ async function doActivate() {
             resultEl.textContent = 'Save failed: ' + saveResult.error;
             resultEl.style.display = 'block';
             resultEl.style.background = 'rgba(244,67,54,0.2)';
-            resultEl.style.color = '#f44336';
-            resultEl.style.border = '1px solid #f44336';
+            resultEl.style.color = '#ef4444';
+            resultEl.style.border = '1px solid #ef4444';
             setTimeout(() => { resultEl.style.display = 'none'; }, 3000);
           }
         }
@@ -1388,8 +1383,8 @@ function showLicenseResult(message, success) {
   el.textContent = message;
   el.style.display = 'block';
   el.style.background = success ? 'rgba(76,175,50,0.2)' : 'rgba(244,67,54,0.2)';
-  el.style.color = success ? '#4caf50' : '#f44336';
-  el.style.border = success ? '1px solid #4caf50' : '1px solid #f44336';
+  el.style.color = success ? '#10b981' : '#ef4444';
+  el.style.border = success ? '1px solid #10b981' : '1px solid #ef4444';
   setTimeout(() => { el.style.display = 'none'; }, 3000);
 }
 
@@ -1511,7 +1506,7 @@ function collectDiffs(a, b, path = '', depth = 0) {
 function renderJson(data, diffs, side, path = '', indent = 0, depth = 0) {
   // 深度限制检查
   if (depth > MAX_DEPTH) {
-    return `<span class="error" style="color: #f48771;">Nested too deep, truncated</span>`;
+    return `<span class="error" style="color: #f38ba8;">Nested too deep, truncated</span>`;
   }
 
   const pad = '  '.repeat(indent);
@@ -1858,7 +1853,7 @@ function renderSimpleFormatted(data, indent = 0, depth = 0) {
 
   // 深度限制检查
   if (depth > MAX_DEPTH) {
-    return '<span class="error" style="color: #f48771;">Nested too deep, truncated</span>';
+    return '<span class="error" style="color: #f38ba8;">Nested too deep, truncated</span>';
   }
 
   if (data === null) return '<span class="v-null">null</span>';
@@ -2339,24 +2334,24 @@ function highlightTypeScript(code) {
   let result = esc(code);
 
   // 高亮注释
-  result = result.replace(/(\/\/[^\n]*)/g, '<span style="color:#6a9955;">$1</span>');
+  result = result.replace(/(\/\/[^\n]*)/g, '<span style="color:#a6e3a1;">$1</span>');
 
   // 高亮字符串（单引号内容）
-  result = result.replace(/('[^']*')/g, '<span style="color:#ce9178;">$1</span>');
+  result = result.replace(/('[^']*')/g, '<span style="color:#fab387;">$1</span>');
 
   // 高亮关键字
   const keywords = ['interface', 'type', 'extends', 'const', 'let', 'var',
     'function', 'return', 'if', 'else', 'for', 'while', 'class', 'new',
     'import', 'export', 'from', 'default', 'async', 'await', 'readonly'];
   keywords.forEach(kw => {
-    result = result.replace(new RegExp(`\\b${kw}\\b`, 'g'), '<span style="color:#569cd6;">' + kw + '</span>');
+    result = result.replace(new RegExp(`\\b${kw}\\b`, 'g'), '<span style="color:#89b4fa;">' + kw + '</span>');
   });
 
   // 高亮类型
   const types = ['string', 'number', 'boolean', 'null', 'undefined', 'any', 'void',
     'never', 'object', 'unknown', 'bigint', 'symbol'];
   types.forEach(t => {
-    result = result.replace(new RegExp(`\\b${t}\\b`, 'g'), '<span style="color:#4ec9b0;">' + t + '</span>');
+    result = result.replace(new RegExp(`\\b${t}\\b`, 'g'), '<span style="color:#cba6f7;">' + t + '</span>');
   });
 
   return result;
@@ -2371,17 +2366,17 @@ function highlightGo(code) {
   let result = esc(code);
 
   // 高亮注释
-  result = result.replace(/(\/\/[^\n]*)/g, '<span style="color:#6a9955;">$1</span>');
+  result = result.replace(/(\/\/[^\n]*)/g, '<span style="color:#a6e3a1;">$1</span>');
 
   // 高亮 json tag
-  result = result.replace(/(`json:"[^"]*"`)/g, '<span style="color:#ce9178;">$1</span>');
+  result = result.replace(/(`json:"[^"]*"`)/g, '<span style="color:#fab387;">$1</span>');
 
   // 高亮关键字
   const keywords = ['package', 'import', 'func', 'return', 'var', 'const', 'type',
     'struct', 'interface', 'map', 'chan', 'if', 'else', 'for', 'range',
     'switch', 'case', 'default', 'break', 'continue', 'go', 'defer', 'select'];
   keywords.forEach(kw => {
-    result = result.replace(new RegExp(`\\b${kw}\\b`, 'g'), '<span style="color:#569cd6;">' + kw + '</span>');
+    result = result.replace(new RegExp(`\\b${kw}\\b`, 'g'), '<span style="color:#89b4fa;">' + kw + '</span>');
   });
 
   // 高亮类型
@@ -2389,7 +2384,7 @@ function highlightGo(code) {
     'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'uintptr',
     'float32', 'float64', 'bool', 'byte', 'rune', 'error', 'any'];
   types.forEach(t => {
-    result = result.replace(new RegExp(`\\b${t}\\b`, 'g'), '<span style="color:#4ec9b0;">' + t + '</span>');
+    result = result.replace(new RegExp(`\\b${t}\\b`, 'g'), '<span style="color:#cba6f7;">' + t + '</span>');
   });
 
   return result;
@@ -2413,7 +2408,7 @@ function highlightYaml(code) {
       const beforeComment = line.substring(0, commentIndex);
       const quoteCount = (beforeComment.match(/"/g) || []).length;
       if (quoteCount % 2 === 0) {
-        highlighted = esc(beforeComment) + `<span style="color:#6a9955;">${esc(line.substring(commentIndex))}</span>`;
+        highlighted = esc(beforeComment) + `<span style="color:#a6e3a1;">${esc(line.substring(commentIndex))}</span>`;
         result.push(highlighted);
         continue;
       }
@@ -2426,17 +2421,17 @@ function highlightYaml(code) {
       const key = colonMatch[2];
       const colon = colonMatch[3];
       const rest = highlighted.substring(colonMatch[0].length);
-      highlighted = indent + `<span style="color:#9cdcfe;">${key}</span>` + colon + rest;
+      highlighted = indent + `<span style="color:#74c7ec;">${key}</span>` + colon + rest;
     }
 
     // 高亮布尔值和 null（在行尾）
-    highlighted = highlighted.replace(/:\s*(true|false|null)\s*$/g, ': <span style="color:#569cd6;">$1</span>');
+    highlighted = highlighted.replace(/:\s*(true|false|null)\s*$/g, ': <span style="color:#89b4fa;">$1</span>');
 
     // 高亮数字（在行尾）
-    highlighted = highlighted.replace(/:\s*(-?\d+\.?\d*)\s*$/g, ': <span style="color:#b5cea8;">$1</span>');
+    highlighted = highlighted.replace(/:\s*(-?\d+\.?\d*)\s*$/g, ': <span style="color:#94e2d5;">$1</span>');
 
     // 高亮列表标记
-    highlighted = highlighted.replace(/^(\s*)(-)(\s)/, '$1<span style="color:#ffd700;">-</span>$3');
+    highlighted = highlighted.replace(/^(\s*)(-)(\s)/, '$1<span style="color:#f9e2af;">-</span>$3');
 
     result.push(highlighted);
   }
@@ -2806,10 +2801,10 @@ function queryPath() {
     }
 
     // 渲染结果
-    let html = `<div style="color: #6a9955; margin-bottom: 8px;">Found ${results.length} results:</div>`;
+    let html = `<div style="color: #a6e3a1; margin-bottom: 8px;">Found ${results.length} results:</div>`;
     results.forEach((r, i) => {
       html += `<div style="margin-bottom: 12px; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 4px;">`;
-      html += `<div style="color: #888; font-size: 11px; margin-bottom: 4px;">[${i}]</div>`;
+      html += `<div style="color: #6c7086; font-size: 11px; margin-bottom: 4px;">[${i}]</div>`;
       html += render(r);
       html += `</div>`;
     });
@@ -3039,7 +3034,7 @@ function updateDiffUsageDisplay(usage) {
   if (diffStats) {
     const remaining = FREE_DIFF_LIMIT - usage;
     if (remaining > 0) {
-      diffStats.innerHTML = `<span style="color:#888;">${remaining} left</span> ` + diffStats.innerHTML;
+      diffStats.innerHTML = `<span style="color:#6c7086;">${remaining} left</span> ` + diffStats.innerHTML;
     }
   }
 }
