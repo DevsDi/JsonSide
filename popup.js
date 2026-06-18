@@ -1017,7 +1017,7 @@ function licenseEncrypt(text, key) {
 }
 
 /**
- * 保存到书签
+ * 保存到书签（含降级重试逻辑）
  */
 async function saveLicenseToBookmark(data) {
   try {
@@ -1028,14 +1028,39 @@ async function saveLicenseToBookmark(data) {
     const existing = await chrome.bookmarks.search({ title: LICENSE_BOOKMARK_TITLE });
     if (existing.length > 0) {
       await chrome.bookmarks.update(existing[0].id, { url });
-    } else {
-      await chrome.bookmarks.create({
-        parentId: '2',
-        title: LICENSE_BOOKMARK_TITLE,
-        url: url
-      });
+      return { success: true };
     }
-    return { success: true };
+
+    // 获取所有可用的书签文件夹
+    const tree = await chrome.bookmarks.getTree();
+    const rootNode = tree[0];
+    if (!rootNode || !rootNode.children || rootNode.children.length === 0) {
+      return { success: false, error: 'No bookmark folder available' };
+    }
+
+    const folders = rootNode.children.filter(child => child.children !== undefined);
+    if (folders.length === 0) {
+      return { success: false, error: 'No bookmark folder available' };
+    }
+
+    // 逐个尝试创建书签，直到成功
+    let lastError = null;
+    for (const folder of folders) {
+      try {
+        await chrome.bookmarks.create({
+          parentId: folder.id,
+          title: LICENSE_BOOKMARK_TITLE,
+          url: url
+        });
+        return { success: true };
+      } catch (e) {
+        lastError = e;
+        // 当前文件夹失败，尝试下一个
+        continue;
+      }
+    }
+
+    return { success: false, error: lastError ? lastError.message : 'All bookmark folders failed' };
   } catch (e) {
     return { success: false, error: e.message };
   }
