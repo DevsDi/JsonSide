@@ -635,6 +635,10 @@ function hideFormatButtons(hide) {
   document.getElementById('collapseBtn').style.display = hide ? 'none' : '';
   document.getElementById('copyBtn').style.display = hide ? 'none' : '';
   document.getElementById('clearBtn').style.display = hide ? 'none' : '';
+  document.getElementById('historyBtn').style.display = hide ? 'none' : '';
+  // 分隔线在非 Format 模式下也隐藏
+  const divider = document.querySelector('.toolbar .divider');
+  if (divider) divider.style.display = hide ? 'none' : '';
 }
 
 function switchMode(mode) {
