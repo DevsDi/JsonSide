@@ -92,7 +92,7 @@
   }
 
   /**
-   * 显示提示
+   * 显示提示（fixed 定位直接用视口坐标）
    */
   function showTooltip(x, y, text) {
     if (!tooltip) createTooltip();
@@ -111,13 +111,10 @@
     }
   }
 
-  // 防抖
+  // 当前悬停的元素和对应的时间戳
   let hoverTimer = null;
+  let currentHoverEl = null;
   let currentTz = 8;
-
-  // X6: 节流相关变量
-  let lastProcessTime = 0;
-  const THROTTLE_INTERVAL = 100; // 100ms 节流间隔
 
   // 初始化时区
   getTimezone().then(tz => currentTz = tz);
@@ -129,16 +126,12 @@
     }
   });
 
-  // 监听鼠标悬停（X6: 添加节流）
-  document.addEventListener('mouseover', (e) => {
-    clearTimeout(hoverTimer);
-
-    // X6: 节流检查
-    const now = Date.now();
-    if (now - lastProcessTime < THROTTLE_INTERVAL) {
-      return;
-    }
-
+  /**
+   * 处理悬停逻辑
+   * 使用 mousemove 替代 mouseover，避免子元素间切换时 mouseout 误清除定时器
+   * 同一元素及子元素内移动不重复处理
+   */
+  document.addEventListener('mousemove', (e) => {
     const el = e.target;
 
     // 检查元素类型
@@ -148,29 +141,36 @@
     // 排除不需要处理的元素
     if (['input', 'textarea', 'select', 'option'].includes(tagName)) return;
 
+    // 如果鼠标仍在当前悬停元素或其子元素内，不重复处理
+    if (currentHoverEl && currentHoverEl.contains(el)) return;
+
+    // 切换了元素，清除之前的定时器
+    clearTimeout(hoverTimer);
+    currentHoverEl = el;
+
     // 检查是否包含时间戳
     const ts = extractTimestamp(el);
     if (ts === null) {
       hideTooltip();
+      currentHoverEl = null;
       return;
     }
 
     // 延迟显示，避免鼠标快速划过时频繁弹出
     hoverTimer = setTimeout(() => {
-      lastProcessTime = Date.now(); // 更新最后处理时间
       const formatted = formatTimestamp(ts, currentTz);
+      // fixed 定位直接使用 getBoundingClientRect 的视口坐标，不加 scrollX/scrollY
       const rect = el.getBoundingClientRect();
-      showTooltip(rect.left + window.scrollX, rect.bottom + window.scrollY, formatted);
+      showTooltip(rect.left, rect.bottom, formatted);
     }, 300);
   });
 
-  // 鼠标移出时隐藏
-  document.addEventListener('mouseout', (e) => {
+  // 鼠标离开文档时隐藏
+  document.addEventListener('mouseleave', () => {
     clearTimeout(hoverTimer);
-    // 检查是否移到提示框上
-    if (e.relatedTarget?.id === 'json-side-tooltip') return;
     hideTooltip();
-  });
+    currentHoverEl = null;
+  }, true);
 
   // 滚动时隐藏
   document.addEventListener('scroll', () => {
