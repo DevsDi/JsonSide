@@ -353,6 +353,8 @@ async function init() {
 
 // 格式化时间戳
 function formatTs(ts, tz) {
+  // 输入校验：ts/tz 非有限数字时返回占位符，避免 NaN 参与运算产出 "NaN-NaN-NaN"
+  if (!Number.isFinite(ts) || !Number.isFinite(tz)) return '--';
   const ms = ts > 1000000000000 ? ts : ts * 1000;
   const date = new Date(ms + tz * 3600000);
   const y = date.getUTCFullYear();
@@ -603,6 +605,13 @@ input.onkeydown = (e) => {
     format();
   }
 };
+
+// 粘贴后自动格式化
+input.addEventListener('paste', () => {
+  setTimeout(() => {
+    format();
+  }, 0);
+});
 
 // 初始化
 init();

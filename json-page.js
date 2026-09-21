@@ -70,9 +70,12 @@
   }
 
   /**
-   * Format timestamp
+   * 格式化时间戳
+   * @param {number} ts - 时间戳（秒或毫秒）
+   * @returns {string} 格式化后的日期时间字符串，非法输入返回 '--'
    */
   function formatTs(ts) {
+    if (!Number.isFinite(ts)) return '--';
     const ms = ts > 1000000000000 ? ts : ts * 1000;
     const date = new Date(ms);
     const y = date.getFullYear();
@@ -103,7 +106,7 @@
         isTs = true;
       }
       if (isTs) {
-        return `<span class="jp-number jp-ts" data-ts="${data}" title="${formatTs(data)}">${data}</span>`;
+        return `<span class="jp-number jp-ts" data-ts="${data}">${data}</span>`;
       }
       return `<span class="jp-number">${data}</span>`;
     }
